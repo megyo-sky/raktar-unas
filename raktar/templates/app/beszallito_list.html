@@ -1,0 +1,167 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Beszállítók listája</h5></div>
+    <div class="panel-body">
+        {% if user.is_staff %}
+        <button type="button" class="btn btn-success" onclick="window.location.href='{% url 'beszallito_new' %}'">Új
+            beszállító létrehozása
+        </button>
+        {% endif %}
+        <p></p>
+        <div class="apply-filter-option">
+            <div id="useFilterApplyButton"></div>
+        </div>
+        <div id="gridContainer" align="center"></div>
+        <div class="options">
+            <div>
+                <div id="filterRow"></div>
+            </div>
+            <div>
+                <div id="headerFilter"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var beszallitok = {{beszallitok|safe}};
+
+$(function(){
+    var dataGrid = $("#gridContainer").dxDataGrid({
+        dataSource: beszallitok,
+        key: 'id',
+        allowColumnResizing: true,
+        paging: {
+            pageSize: 15
+        },
+        pager: {
+            showPageSizeSelector: true,
+            allowedPageSizes: [20, 50, 100],
+            showInfo: true
+        },
+        selection: {
+            mode: "single"
+        },
+
+        /*
+        "export": {
+            enabled: true,
+            fileName: "Beszallitok riport",
+            allowExportSelectedData: true
+        },
+        searchPanel: {
+            visible: true,
+            width: 240,
+            placeholder: "Keresés..."
+        },
+        */
+
+        filterRow: {
+            visible: true,
+            applyFilter: "auto"
+        },
+        headerFilter: {
+            visible: true
+        },
+        columns: [
+    	 {
+		    caption: "Művelet",
+			width: 120,
+            alignment: 'center',
+            cellTemplate: function (container, options) {
+                $('<a/>').addClass('dx-link')
+                    .text('Módosít')
+                    .on('dxclick', function () {
+                        var currentRow=$(this).closest("tr");
+                        var besz_id = currentRow.find("td:eq(7)").text();
+                        location.href = '/beszallito/' + besz_id + '/edit';
+                    })
+                    .appendTo(container);
+                }
+        },
+        {
+            dataField: "beszallito_nev",
+            width: 250,
+            caption: "Beszállító neve",
+        },
+        {
+            dataField: "beszallito_cim",
+			width: 250,
+            caption: "Beszállító címe",
+            dataType: "string",
+        },
+        {
+            dataField: "beszallito_ugyintezo",
+            width: 255,
+            caption: "Ügyintéző",
+        },
+        {
+            dataField: "beszallito_email",
+            width: 200,
+            caption: "Email",
+        },
+        {
+            dataField: "beszallito_telefon",
+            width: 200,
+            caption: "Telefon",
+        },
+        {
+            dataField: "megjegyzes",
+            width: 255,
+            caption: "Megjegyzés",
+        },
+        {
+            dataField: "id",
+            width: 80,
+            caption: "Id",
+            hidingPriority: 0,
+        },
+        ],
+        onSelectionChanged: function (selectedItems) {
+            var data = selectedItems.selectedRowsData[0];
+        }
+    }).dxDataGrid('instance');
+
+});
+
+</script>
+
+{% endblock %}
+
+<!--<table id="beszallitok" class="table table-striped" cellspacing="0" width="100%">-->
+<!--<thead>-->
+<!--<tr>-->
+<!--<th>Beszállító neve</th>-->
+<!--<th>Beszállító címe:</th>-->
+<!--<th>Ügyintéző</th>-->
+<!--<th>Email cím</th>-->
+<!--<th>Telefon</th>-->
+<!--<th>Megjegyzés</th>-->
+<!--<th>Művelet</th>-->
+<!--</thead>-->
+<!--<tbody>-->
+
+<!--{% for b in beszallitok %}-->
+<!--<tr>-->
+<!--<td width="20%">{{ b.beszallito_nev }}</td>-->
+<!--<td width="30%">{% if b.beszallito_cim %} {{ b.beszallito_cim }} {% endif %}</td>-->
+<!--<td width="10%">{% if b.beszallito_ugyintezo %} {{ b.beszallito_ugyintezo }} {% endif %}</td>-->
+<!--<td width="10%">{% if b.beszallito_email %} {{ b.beszallito_email }} {% endif %}</td>-->
+<!--<td width="15%">{% if b.beszallito_telefon %} {{ b.beszallito_telefon }} {% endif %}</td>-->
+<!--<td width="15%">{% if b.megjegyzes %} {{ b.megjegyzes }} {% endif %}</td>-->
+<!--<td>{% if user.is_staff %}-->
+<!--<p data-placement="top" data-toggle="tooltip" title="Módosít"><button class="btn btn-primary" onclick="window.location.href='{% url 'beszallito_edit' pk=b.id %}'"  ><span class="glyphicon glyphicon-pencil"></span></button></p>-->
+<!--&lt;!&ndash;<button class="btn btn-primary" data-title="view" data-toggle="modal" data-target="#edit" onclick="window.location.href='{% url 'beszallito_edit' pk=b.id %}'" ><span class="glyphicon glyphicon-eye-open"></span></button>&ndash;&gt;-->
+<!--{% endif %}-->
+<!--</td>-->
+<!--</tr>-->
+<!--{% endfor %}-->
+<!--</tbody>-->
+<!--</table>-->
+

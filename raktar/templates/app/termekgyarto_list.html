@@ -1,0 +1,104 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termék gyártók listája</h5></div>
+    <div class="panel-body">
+        <p></p>
+        {% if user.is_staff %}
+        <button type="button" class="btn btn-success" onclick="window.location.href='{% url 'termekgyarto_new' %}'">
+            Új gyártó létrehozása
+        </button>
+        {% endif %}
+        <p></p>
+        <div class="apply-filter-option">
+            <div id="useFilterApplyButton"></div>
+        </div>
+        <div id="gridContainer"></div>
+        <div class="options">
+            <div>
+                <div id="filterRow"></div>
+            </div>
+            <div>
+                <div id="headerFilter"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+
+$(function(){
+    var dataGrid = $("#gridContainer").dxDataGrid({
+        dataSource: "{% url 'get_termekgyarto_api' %}",
+        key: 'id',
+        allowColumnResizing: true,
+        paging: {
+            pageSize: 15
+        },
+        pager: {
+            showPageSizeSelector: true,
+            allowedPageSizes: [20, 50, 100],
+            showInfo: true
+        },
+        selection: {
+            mode: "single"
+        },
+        "export": {
+            enabled: true,
+            fileName: "Termékgyártók",
+            allowExportSelectedData: true
+        },
+        searchPanel: {
+            visible: true,
+            width: 240,
+            placeholder: "Keresés..."
+        },
+        filterRow: {
+            visible: true,
+            applyFilter: "auto"
+        },
+        headerFilter: {
+            visible: true
+        },
+        columns: [
+    	 {
+		    caption: "Művelet",
+			width: 80,
+            alignment: 'center',
+            cellTemplate: function (container, options) {
+                $('<a/>').addClass('dx-link glyphicon glyphicon-pencil')
+                    //.text('Módosít')
+                    .on('dxclick', function () {
+                        var currentRow=$(this).closest("tr");
+                        var termekgyarto_id = currentRow.find("td:eq(2)").text();
+                        location.href = '/termekgyarto/' + termekgyarto_id + '/edit';
+                    })
+                    .appendTo(container);
+                }
+        },
+        {
+            dataField: "termekgyarto",
+			width: 500,
+            caption: "Termék gyártó neve",
+            dataType: "string",
+        },
+        {
+            dataField: "id",
+            width: 80,
+            caption: "Id",
+        },
+        ],
+        onSelectionChanged: function (selectedItems) {
+            var data = selectedItems.selectedRowsData[0];
+        }
+    }).dxDataGrid('instance');
+
+});
+
+</script>
+
+{% endblock %}
+

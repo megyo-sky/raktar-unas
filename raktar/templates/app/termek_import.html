@@ -1,0 +1,86 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termékek tömeges feltöltése</h5></div>
+    <div class="panel-body">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h5 class="panel-title">Fájl feltöltése</h5></div>
+            <div class="panel-body">
+                <div class="col-md-6">
+                    {% load bootstrap3 %}
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% bootstrap_form form layout="horizontal" %}
+                        <button type="submit" class="save btn btn-primary">Feltöltés</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading"><h5 class="panel-title">Feltöltendő adatok megjelenítése (első 10 sor)</h5></div>
+            <div class="panel-body">
+                <div class="col-md-12">
+                    <div class="col-md-10">
+                        <h4>Imortálandó sorok száma: {{ termek_lista|length }}</h4>
+                    </div>
+                    <div class="col-md-2">
+                        {% if termek_lista %}
+                        <button type="button" class="btn btn-success"
+                                onclick="window.location.href='{% url 'termek_import' %}'">Termékek importálása
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <table id="import" class="table table-bordered" cellspacing="0" width="100%">
+                        <thead>
+                        <tr>
+                            <th>Termék neve</th>
+                            <th>Gyári cikkszám</th>
+<!--                            <th>Saját cikkszám</th>-->
+                            <th>Nagyker nettó ár</th>
+                            {% if set.alap_aruhaz_nev %}
+                                <th>Bruttó ár ({{set.alap_aruhaz_nev }})</th>
+                            {% endif %}
+                            <th>Elhelyezés</th>
+                            <th>Minimum készlet</th>
+                            <th>Mennyiségi egység</th>
+                            <th>Termékkategória</th>
+                            <th>Termék gyártó</th>
+                            <th>Aktív</th>
+                            <th>Megjegyzés</th>
+                            <th>Web link</th>
+                        </thead>
+                        <tbody>
+                        {% for row in termek_lista|slice:":10" %}
+                        <tr>
+                            <td>{{row.0|truncatechars:30}}</td>
+                            <td>{{row.1}}</td>
+                            <td>{{row.2}}</td>
+                            <td>{{row.3}}</td>
+                            <td>{{row.4}}</td>
+                            <td>{{row.5}}</td>
+                            <td>{{row.6}}</td>
+                            <td>{{row.7}}</td>
+                            <td>{{row.8}}</td>
+                            <td>{{row.9}}</td>
+<!--                            <td>{{row.10}}</td>-->
+                            <td>{{row.10|truncatechars:20}}</td>
+                            <td>{{row.11|truncatechars:20}}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {{ hiba_import }}
+
+                    {% if termek_hiba %}
+                    <h3>Nem sikerült minden terméket importálni!</h3>
+                    <h4>A hibalistát az alábbi linkre kattintva tudja letölteni: <a
+                            href="/media/export/termek_import_error.csv"> Hibalista</a></h4>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

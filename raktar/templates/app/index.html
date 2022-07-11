@@ -1,0 +1,88 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termék értékesítés - Termék keresés</h5></div>
+    <div class="panel-body">
+        <br>
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-6">
+                    <form id="termek_keres_form" action="/" method="post">
+                        {% csrf_token %}
+                        {% load widget_tweaks %}
+                        {{ form.autocomplete|add_class:"form-control"|attr:"autofocus"|attr:"placeholder:Cikkszám, Termék neve"}}
+                </div>
+                <input type="submit" value="Keres" class="btn btn-default">
+                <div id="rejtett_form" hidden>
+                    {{ form.autocomplete_id}}
+                </div>
+                </form>
+            </div>
+        </div>
+        <br>
+
+        {% if data %}
+        <table id="termekek" class="table table-striped" cellspacing="0" width="100%">
+            <thead>
+            <tr>
+                <th>Gyári cikkszám</th>
+<!--                <th>Saját cikkszám</th>-->
+                <th>Termékkategória</th>
+                <th>Termék neve</th>
+                <th>Bolti bruttó ár</th>
+                <th>Link</th>
+                <th>Eladás</th>
+            </thead>
+            <tbody>
+
+            {% for t in termekek %}
+            <tr>
+                <td width="10%">{{ t.gyari_cikkszam }}</td>
+<!--                <td width="10%">{% if t.sajat_cikkszam %} {{ t.sajat_cikkszam }} {% endif %}</td>-->
+                <td width="20%">{{ t.termekkategoria.termekkategoria }}</td>
+                <td width="30%">{{ t.termek_nev }}</td>
+                <td width="10%">{{ t.ar_bolt_brutto }}</td>
+                <td width="10%">{% if t.web_link %} <a href="{{ t.web_link }}">{{ t.web_link }} </a> {% endif %}</td>
+                <td>
+                    <button style="margin-left:40px;" type="button" class="btn btn-success"
+                            onclick="window.location.href='{% url 'termek_ertekesites' pk=t.id %}'">
+                        Eladás
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    document.getElementById("id_autocomplete_id").value = "";
+
+    $( function() {
+    $.ui.autocomplete.prototype._renderItem = function (ul, item) {
+        item.label = item.label.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + $.ui.autocomplete.escapeRegex(this.term) + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<strong>$1</strong>");
+        return $("<li></li>")
+                .data("item.autocomplete", item)
+                .append("<a>" + item.label + "</a>")
+                .appendTo(ul);
+    };
+
+    $( "#id_autocomplete" ).autocomplete({
+      source: "{% url 'get_termek' %}",
+      minLength: 2,
+        select: function( event, ui ) {
+        elem = document.getElementById("id_autocomplete_id").value = ui.item.id;
+        document.getElementById("termek_keres_form").submit();
+      }
+    });
+  } );
+</script>
+
+{% endblock %}

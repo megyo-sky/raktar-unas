@@ -1,0 +1,196 @@
+{% extends "app/layout.html" %}
+{% block extrahead %}
+<style type="text/css">
+    .add-row {
+        padding-left:18px;
+        background:url(/static/images/add.png) no-repeat left center;
+    }
+    .delete-row {
+        float:left;
+        display:block;
+        margin:5px 0 0 5px;
+        text-indent: 25px;
+        background:url(/static/images/delete.png) no-repeat left center;
+        width:-1px;
+        height:16px;
+    }
+    tr.row1 td { background-color: #f9f9f9; }
+    tr.row2 td { background-color: #f3f3f3; }
+    tr.row3 td { background-color: #ededed; }
+
+
+
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Bevételezés</h5></div>
+<div class="panel-body">
+        <h4>Bevételezés alapadatai:</h4><br>
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% if hibas_felvitel %}
+            <h4 style="color:red"color>Az alábbi termékeket nem sikerült bevételezni:</h4>
+            {% for hiba in hibas_felvitel %}
+                - {{hiba}} <br>
+            {% endfor %}
+        <hr><br>
+        {% endif %}
+
+        {% load widget_tweaks %}
+        <form method="POST" role="form" id="bevetel_form">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-1" style="text-align: right;">
+                    <h4>Beszállító:</h4>
+                </div>
+                <div class="col-md-4">
+                    {{ form.beszallito|add_class:"form-control"|attr:"autofocus"|attr:"tabindex:1"}}
+                    {{ form.beszallito.errors }}
+                </div>
+                <div class="col-md-1" style="text-align: right;">
+                    <h4>Dátum: </h4>
+                </div>
+                <div class="col-md-2">
+                    {{ form.bevetel_datum|add_class:"form-control"|attr:"tabindex:2"}}
+                    {{ form.bevetel_datum.errors }}
+                </div>
+                <div class="col-md-1" style="text-align: right;">
+                    <h4>Szállítólevél: </h4>
+                </div>
+                <div class="col-md-2">
+                    {{ form.szallitolevel_szam|add_class:"form-control"|attr:"tabindex:3"}}
+                    {{ form.szallitolevel_szam.errors }}
+                </div>
+            </div>
+        <hr>
+        <h4>Termékek:</h4>
+                <table id="bevetel" class="table table-striped" cellspacing="0" width="100%">
+                    <thead>
+                    <tr>
+                        <th>Termék</th>
+                        <th>Raktár</th>
+                        <th>Mennyiség</th>
+                        <th>Nettó ár</th>
+                        <th>Művelet</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for f2 in termekform.forms %}
+                    <tr id="{{ f2.prefix }}-row">
+                        <td width="30%">
+                            {{ f2.termek_id|add_class:"form-control"}}
+                            {{ f2.termek_id.errors }}
+                            {{ f2.termek|add_class:"form-control ui-autocomplete-input"|attr:"tabindex:4"|attr:"required"}}
+                            {{ f2.termek.errors }}
+                        </td>
+                        <td width="20%">
+                            {{ f2.raktar|add_class:"form-control"|attr:"tabindex:5"|attr:"required"}}
+                            {{ f2.raktar.errors }}
+                        </td>
+                        <td width="10%">
+                            {{ f2.bevetel_mennyiseg|add_class:"form-control"|attr:"tabindex:6"|attr:"required"}}
+                            {{ f2.bevetel_mennyiseg.errors }}
+                        </td>
+                        <td width="10%">
+                            {{ f2.ar_bevetel_netto|add_class:"form-control"|attr:"tabindex:7"}}
+                            {{ f2.ar_bevetel_netto.errors }}
+                        </td>
+                        <td width="10%"></td>
+
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>Megjegyzés: </h4>
+                        {{ form.megjegyzes|add_class:"form-control"|attr:"tabindex:30"}}
+                        {{ form.megjegyzes.errors }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button style="margin: auto;display:block;font-size: 45px" type="submit" class="btn btn-success" tabindex="9">
+            Bevétel
+        </button>
+        {{ termekform.management_form }}
+        </form>
+{% endblock %}
+
+{% block scripts %}
+
+{{ form.media }}
+
+<script type="text/javascript">
+    $(function() {
+        $('#bevetel tbody tr').formset({
+            prefix: '{{ termekform.prefix }}',
+        });
+    })
+</script>
+
+<script>
+$.ui.autocomplete.prototype._renderItem = function (ul, item) {
+    item.label = item.label.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + $.ui.autocomplete.escapeRegex(this.term) + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<strong>$1</strong>");
+    return $("<li></li>")
+            .data("item.autocomplete", item)
+            .append("<a>" + item.label + "</a>")
+            .appendTo(ul);
+};
+
+$(".ui-autocomplete-input").focusin (function() {
+    var elem_id = this.id;
+    document.getElementById(elem_id).value = "";
+    document.getElementById(elem_id+"_id").value = "";
+    $("#"+elem_id).autocomplete({
+      source: "{% url 'get_termek' %}",
+      minLength: 2,
+        select: function( event, ui ) {
+        elem = document.getElementById(elem_id).value = ui.item.id;
+        document.getElementById(elem_id+"_id").value = elem;
+      }
+    });
+  });
+
+$(".ui-autocomplete-input").focusout (function() {
+    var elem_id = this.id;
+    elem = document.getElementById(elem_id+"_id").value;
+    window.setTimeout(function() {
+        if (elem == "") {
+            document.getElementById(elem_id).value = "";
+        }
+    },1);
+ });
+
+</script>
+<script>
+  $(function() {
+    $( ".datum" ).datepicker({
+      showMonthAfterYear: true,
+      changeMonth: true,
+      changeYear: true,
+      yearRange: "1950:2050",
+      dateFormat: "yy.mm.dd.",
+      regional: "hu"
+    });
+  });
+</script>
+<script type="text/javascript">
+    $.datepicker.regional['hu'] = {
+        monthNamesShort: ['Jan', 'Feb', 'Már', 'Ápr', 'Máj', 'Jún', 'Júl', 'Aug', 'Szep', 'Okt', 'Nov', 'Dec'],
+        dayNamesShort: ['H', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+        dayNamesMin: ['V', 'H', 'K', 'Sz', 'Cs', 'P', 'Szo'],
+        firstDay: 1
+    }
+
+    $.datepicker.setDefaults($.datepicker.regional['hu']);
+</script>
+
+{% endblock %}

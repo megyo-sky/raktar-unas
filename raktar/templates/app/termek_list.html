@@ -1,0 +1,214 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termékek listája</h5></div>
+    <div class="panel-body">
+        {% if user.is_staff %}
+        <button type="button" class="btn btn-success" onclick="window.location.href='{% url 'termek_new' %}'">Új termék
+            létrehozása
+        </button>
+        <button type="button" class="btn btn-info" onclick="window.location.href='{% url 'termek_import_feltolt' %}'">
+            Tömeges termék feltöltés
+        </button>
+        <p></p>
+        {% endif %}
+
+        <div class="apply-filter-option">
+            <div id="useFilterApplyButton"></div>
+        </div>
+        <div id="gridContainer"></div>
+        <div class="options">
+            <div>
+                <div id="filterRow"></div>
+            </div>
+            <div>
+                <div id="headerFilter"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+
+$(function(){
+    var dataGrid = $("#gridContainer").dxDataGrid({
+        dataSource: "{% url 'get_termekapi' %}",
+        key: 'id',
+        allowColumnResizing: true,
+        paging: {
+            pageSize: 15
+        },
+        pager: {
+            showPageSizeSelector: true,
+            allowedPageSizes: [20, 50, 100],
+            showInfo: true
+        },
+        selection: {
+            mode: "single"
+        },
+        filterRow: {
+            visible: true,
+            applyFilter: "auto"
+        },
+        headerFilter: {
+            visible: true
+        },
+        columns: [
+        {
+		    caption: "Étrékesítés",
+			width: 80,
+            alignment: 'center',
+            cellTemplate: function (container, options) {
+                $('<a/>').addClass('dx-link glyphicon glyphicon-shopping-cart')
+                    //.text('Értékesít')
+                    .on('dxclick', function () {
+                        var currentRow=$(this).closest("tr");
+                        var termek_id = currentRow.find("td:eq(15)").text();
+                        location.href = '/termek-ertekesites/' + termek_id + '/show';
+                    })
+                    .appendTo(container);
+                }
+        },
+    	 {
+		    caption: "Művelet",
+			width: 80,
+            alignment: 'center',
+            cellTemplate: function (container, options) {
+                $('<a/>').addClass('dx-link glyphicon glyphicon-pencil')
+                    //.text('Módosít')
+                    .on('dxclick', function () {
+                        var currentRow=$(this).closest("tr");
+                        var termek_id = currentRow.find("td:eq(15)").text();
+                        location.href = '/termek/' + termek_id + '/edit';
+                    })
+                    .appendTo(container);
+                }
+        },
+        {
+            dataField: "termek_nev",
+			width: 400,
+            caption: "Termék név",
+            dataType: "string",
+        },
+        {
+            dataField: "gyari_cikkszam",
+            width: 150,
+            caption: "Gyári cikkszám",
+        },
+<!--        {-->
+<!--            dataField: "sajat_cikkszam",-->
+<!--            width: 150,-->
+<!--            caption: "Saját cikkszám",-->
+<!--        },-->
+        {
+            dataField: "ar_nagyker_netto",
+            width: 150,
+            caption: "Nagyker nettó ár",
+            dataType: "number",
+        },
+        {
+            dataField: "alap_bolt_ar_brutto",
+            width: 100,
+            caption: "Alap bolti bruttó ár",
+            dataType: "number",
+        },
+        {
+            dataField: "masodik_bolt_ar_brutto",
+            width: 100,
+            caption: "2_Bolti bruttó ár",
+            dataType: "number",
+        },
+        {
+            dataField: "harmadik_bolt_ar_brutto",
+            width: 100,
+            caption: "3_Bolti bruttó ár",
+            dataType: "number",
+        },
+        {
+            dataField: "termekkategoria",
+            width: 150,
+            caption: "Termékkategória",
+        },
+        {
+            dataField: "termekgyarto",
+            width: 150,
+            caption: "Termék gyártó",
+        },
+        {
+            dataField: "elhelyezes",
+            width: 200,
+            caption: "Elhelyezés",
+        },
+<!--        {-->
+<!--		    caption: "Web link",-->
+<!--			width: 100,-->
+<!--			dataField: "web_link",-->
+<!--            alignment: 'center',-->
+<!--            cellTemplate: function (container, options) {-->
+<!--                $('<a/>').addClass('dx-link glyphicon glyphicon-link')-->
+<!--                    //.text("Link")-->
+<!--                    .on('dxclick', function () {-->
+<!--                        var currentRow=$(this).closest("tr");-->
+<!--                        var termek_id = currentRow.find("td:eq(15)").text();-->
+<!--                        window.open(options.value, "_blank");-->
+<!--                    })-->
+<!--                    .appendTo(container);-->
+<!--                }-->
+<!--        },-->
+        {
+            dataField: "megjegyzes",
+            width: 255,
+            caption: "Megjegyzés",
+        },
+        {
+            dataField: "min_keszlet",
+            width: 100,
+            caption: "Minimum készlet",
+        },
+        {
+            dataField: "mennyisegi_egyseg",
+            width: 120,
+            caption: "Mennyiségi egység",
+        },
+        {
+            dataField: "aktiv",
+            width: 80,
+            caption: "Aktív",
+			format: "boolean",
+        },
+        {
+            dataField: "id",
+            width: 80,
+            caption: "Id",
+        },
+    	 {
+		    caption: "Dokumentumok",
+			width: 100,
+            alignment: 'center',
+            cellTemplate: function (container, options) {
+                $('<a/>').addClass('dx-link glyphicon glyphicon-folder-open')
+                    //.text('Dokumentumok')
+                    .on('dxclick', function () {
+                        var currentRow=$(this).closest("tr");
+                        var termek_id = currentRow.find("td:eq(15)").text();
+                        location.href = '/dokumentum/' + termek_id + '/list';
+                    })
+                    .appendTo(container);
+                }
+        },
+        ],
+        onSelectionChanged: function (selectedItems) {
+            var data = selectedItems.selectedRowsData[0];
+        }
+    }).dxDataGrid('instance');
+
+});
+
+</script>
+
+{% endblock %}
+

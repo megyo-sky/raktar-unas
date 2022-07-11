@@ -1,0 +1,72 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Árak tömeges módosítása</h5></div>
+    <div class="panel-body">
+        <div class="panel panel-default">
+            <div class="panel-heading"><h5 class="panel-title">Fájl feltöltése</h5></div>
+            <div class="panel-body">
+                <div class="col-md-6">
+                    {% load bootstrap3 %}
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% bootstrap_form form layout="horizontal" %}
+                        <button type="submit" class="save btn btn-primary">Feltöltés</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading"><h5 class="panel-title">Módosítandó adatok megjelenítése (első 10 sor)</h5></div>
+            <div class="panel-body">
+                <div class="col-md-8">
+                    <div class="col-md-6">
+                        <h4>Módosítandó termékek száma: {{ ar_lista|length }}</h4>
+                    </div>
+                    <div class="col-md-2">
+                        {% if ar_lista %}
+                        <button type="button" class="btn btn-success"
+                                onclick="window.location.href='{% url 'ar_import' %}'">Árak módosítása
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <table id="import" class="table table-bordered" cellspacing="0" width="100%">
+                        <thead>
+                        <tr>
+                            <th>Termék cikkszáma</th>
+                            {% if set.alap_aruhaz_nev %}
+                                <th>Alap áruház új ár ({{set.alap_aruhaz_nev }})</th>
+                            {% endif %}
+                            {% if set.masodik_aruhaz_nev %}
+                                <th>Második áruház új ár ({{set.masodik_aruhaz_nev }})</th>
+                            {% endif %}
+                            {% if set.harmadik_aruhaz_nev %}
+                                <th>Harmadik áruház új ár {{set.harmadik_aruhaz_nev }}</th>
+                            {% endif %}
+                        </thead>
+                        <tbody>
+                        {% for row in ar_lista|slice:":10" %}
+                        <tr>
+                            <td>{{row.0|truncatechars:30}}</td>
+                            <td>{{row.1}}</td>
+                            <td>{{row.2}}</td>
+                            <td>{{row.3}}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {{ hiba_import }}
+
+                    {% if ar_hiba %}
+                    <h3>Nem sikerült minden árat módosítani!</h3>
+                    <h4>A hibalistát az alábbi linkre kattintva tudja letölteni: <a
+                            href="/media/export/ar_import_error.csv"> Hibalista</a></h4>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

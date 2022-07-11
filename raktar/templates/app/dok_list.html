@@ -1,0 +1,61 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+
+<div class="col-md-12">
+    <div class="panel panel-primary">
+        <div class="panel-heading"><h5 class="panel-title">{{ termeknev }} dokumentumai</h5></div>
+        <div class="panel-body">
+            <br>
+            <p>
+        {% if user.is_authenticated %}
+                <button type="button" class="btn btn-success"
+                        onclick="window.location.href='{% url 'dok_new' pk=termek_id %}'">Új dokumentum feltöltése
+                </button>
+        {% endif %}
+                <button type="button" class="btn btn-info" onclick="window.location.href='{% url 'termek_list' %}'">
+                    Vissza a terméklistához
+                </button>
+                <br>
+            </p>
+
+            <table class="table table-striped ">
+                <thead>
+                <tr>
+                    <th>Dokumentum neve</th>
+                    <th>Feltöltés dátuma</th>
+                    <th>Mutat</th>
+                    <th>Törlés</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for dok in doklist %}
+                <tr>
+                    <td>{{ dok.dok_nev }}</td>
+                    <td>{{ dok.felt_datum}}</td>
+                    {% if dok.dokfile %}
+                    <td>
+                        <button type="button" class="btn btn-primary" onclick="window.open('/media/{{dok.dokfile}}')">
+                            <span> Mutat</span>
+                        </button>
+                    </td>
+                    <td>
+                        {% if user.is_staff %}
+                        <button type="button" class="btn btn-danger delete" onclick="var r = confirm('Biztos, hogy törli?');
+                             if (r == true) {window.location.href = '{% url 'dok_del' pk=dok.id termek_id=dok.termek_id %}';}">
+                            <i class="glyphicon glyphicon-trash"></i><span> Törlés</span>
+                        </button>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+        <p></p>
+    </div>
+</div>
+
+{% endblock %}

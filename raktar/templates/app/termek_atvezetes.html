@@ -1,0 +1,189 @@
+{% extends "app/layout.html" %}
+{% block extrahead %}
+<style type="text/css">
+    .add-row {
+        padding-left:18px;
+        background:url(static/images/add.png) no-repeat left center;
+    }
+    .delete-row {
+        float:left;
+        display:block;
+        margin:5px 0 0 5px;
+        text-indent: 25px;
+        background:url(static/images/delete.png) no-repeat left center;
+        width:-1px;
+        height:16px;
+    }
+    tr.row1 td { background-color: #f9f9f9; }
+    tr.row2 td { background-color: #f3f3f3; }
+    tr.row3 td { background-color: #ededed; }
+
+
+
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termék átvezetés</h5></div>
+    <div class="panel-body">
+        <h4>Raktári adatok:</h4><br>
+
+        {% if hibas_felvitel %}
+            <h4 style="color:red"color>Az alábbi termékeket nem sikerült átvezetni:</h4>
+            {% for hiba in hibas_felvitel %}
+                - {{hiba}} <br>
+            {% endfor %}
+        <hr><br>
+        {% endif %}
+
+        {% load widget_tweaks %}
+        <form method="POST" role="form" id="raktar_form">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-2" style="text-align: right;">
+                    <h4>Raktárból:</h4>
+                </div>
+                <div class="col-md-3">
+                    {{ form.raktarbol|add_class:"form-control"|attr:"autofocus"|attr:"tabindex:1"}}
+                    {{ form.raktarbol.errors }}
+                </div>
+                <div class="col-md-2" style="text-align: right;">
+                    <h4>Raktárba:</h4>
+                </div>
+                <div class="col-md-3">
+                    {{ form.raktarba|add_class:"form-control"|attr:"tabindex:2"}}
+                    {{ form.raktarba.errors }}
+                </div>
+            </div>
+        <hr>
+        <h4>Termékek:</h4>
+        <table id="termekek" class="table table-striped" cellspacing="0" width="100%">
+            <thead>
+            <tr>
+                <th>Termék</th>
+                <!--<th id="th-raktar-felirat">Aktuális készlet</th>-->
+                <th>Átvezetendő mennyiség</th>
+                <th>Művelet</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for f2 in termekform.forms %}
+            <tr id="{{ f2.prefix }}-row">
+                <td width="30%">
+                    {{ f2.termek_id|add_class:"form-control"|attr:"tabindex:4"}}
+                    {{ f2.termek_id.errors }}
+                    {{ f2.termek|add_class:"form-control ui-autocomplete-input"|attr:"tabindex:4"|attr:"required"}}
+                    {{ f2.termek.errors }}
+                </td>
+                <!--<td width="10%">-->
+                    <!--<input class="form-control" id="aktualis_keszlet">-->
+                <!--</td>-->
+                <td width="10%">
+                    {{ f2.mennyiseg|add_class:"form-control"|attr:"tabindex:6"|attr:"required"}}
+                    {{ f2.mennyiseg.errors }}
+                </td>
+                <td width="10%"></td>
+
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <button style="margin: auto;display:block;font-size: 45px" type="submit" class="btn btn-success"
+                onclick="window.location.href='#'" tabindex="9">
+            Átvezetés
+        </button>
+        {{ termekform.management_form }}
+        </form>
+    </div>
+
+  <div class="modal fade" id="myModal" role="dialog">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">Figyelmeztetés</h4>
+        </div>
+        <div class="modal-body">
+          <p>A raktárak nem egyezhetnek meg!</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Bezár</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ form.media }}
+
+<script type="text/javascript">
+    $(function() {
+        $('#termekek tbody tr').formset({
+            prefix: '{{ termekform.prefix }}',
+        });
+    })
+</script>
+
+<script>
+
+$.ui.autocomplete.prototype._renderItem = function (ul, item) {
+    item.label = item.label.replace(new RegExp("(?![^&;]+;)(?!<[^<>]*)(" + $.ui.autocomplete.escapeRegex(this.term) + ")(?![^<>]*>)(?![^&;]+;)", "gi"), "<strong>$1</strong>");
+    return $("<li></li>")
+            .data("item.autocomplete", item)
+            .append("<a>" + item.label + "</a>")
+            .appendTo(ul);
+};
+
+$(".ui-autocomplete-input").focusin (function() {
+    var elem_id = this.id;
+    document.getElementById(elem_id).value = "";
+    document.getElementById(elem_id+"_id").value = "";
+    $("#"+elem_id).autocomplete({
+      source: "{% url 'get_termek' %}",
+      minLength: 2,
+        select: function( event, ui ) {
+        elem = document.getElementById(elem_id).value = ui.item.id;
+        document.getElementById(elem_id+"_id").value = elem;
+      }
+    });
+  });
+
+$(".ui-autocomplete-input").focusout (function() {
+    var elem_id = this.id;
+    elem = document.getElementById(elem_id+"_id").value;
+    window.setTimeout(function() {
+        if (elem == "") {
+            document.getElementById(elem_id).value = "";
+        }
+    },1);
+ });
+
+$("#id_raktarbol").change (function() {
+    raktarbol = $("#id_raktarbol").val();
+    raktarba = $("#id_raktarba").val();
+    // th_raktar_felirat = "Aktuális " + $("#id_raktarbol option:selected").text() + " raktárkészlet";
+    // $("#th-raktar-felirat").html(th_raktar_felirat);
+    window.setTimeout(function() {
+        if (raktarbol == raktarba) {
+            $("#myModal").modal()
+            document.getElementById("id_raktarbol").value = "";
+        }
+    },1);
+ });
+
+ $("#id_raktarba").change (function() {
+    raktarbol = $("#id_raktarbol").val();
+    raktarba = $("#id_raktarba").val();
+    window.setTimeout(function() {
+        if (raktarbol == raktarba) {
+            $("#myModal").modal()
+            document.getElementById("id_raktarba").value = "";
+        }
+    },1);
+ });
+</script>
+
+{% endblock %}

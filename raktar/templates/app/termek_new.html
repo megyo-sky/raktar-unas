@@ -1,0 +1,17 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Új termék létrehozása</h5></div>
+    <div class="panel-body">
+        <div class="col-md-12">
+            {% load bootstrap3 %}
+            <form method="post">
+                {% csrf_token %}
+                {% bootstrap_form form layout="horizontal" %}
+                <button type="submit" class="save btn btn-primary">Létrehoz</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

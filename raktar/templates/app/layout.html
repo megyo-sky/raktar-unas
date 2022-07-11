@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Raktárkezelő</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/dx.spa.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/bootstrap.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/bootstrap-theme.min.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/jquery-ui.min.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/jquery-ui.theme.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/dx.common.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/dx.light.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/content/site.css' %}"/>
+    <script src="{% static 'app/scripts/modernizr-2.6.2.js' %}"></script>
+    {% block extrahead %}
+    {% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="{% url 'index' %}">Kezdőlap</a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    {% if user.is_authenticated %}
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                       aria-expanded="false">Menü<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{% url 'termek_list' %}">Termékek</a></li>
+                        {% if user.is_staff %}
+                        <li><a href="{% url 'termekkategoria_list' %}">Termékkategóriák</a></li>
+                        <li><a href="{% url 'termekgyarto_list' %}">Termék gyártók</a></li>
+                        <li><a href="{% url 'termek_import_feltolt' %}">Tömeges termék feltöltés</a></li>
+                        <li><a href="{% url 'ar_import_feltolt' %}">Tömeges ár módosítás</a></li>
+                        {% endif %}
+                        <li role="separator" class="divider"></li>
+                        <li><a href="{% url 'beszallito_list' %}">Beszállítók</a></li>
+                        {% if user.is_staff %}
+                        <li><a href="{% url 'bevetel_new' %}">Bevételezés</a></li>
+                        <li><a href="{% url 'termek_atvezetes' %}">Átvezetés</a></li>
+                        <li role="separator" class="divider"></li>
+                        {% endif %}
+                        <li><a href="/admin">Admin</a></li>
+                        <li><a href="{% url 'change_password' %}">Jelszó módosítás</a></li>
+                    </ul>
+                </li>
+                <li><a href="{% url 'index' %}">Értékesítés</a></li>
+                {% endif %}
+                {% if user.is_staff %}
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                       aria-expanded="false">Exportok<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{% url 'export_termek' %}">Termék export</a></li>
+                        <li><a href="{% url 'export_bevetel' %}">Bevétel export</a></li>
+                        <li><a href="{% url 'export_ertekesit' %}">Értékesítés export</a></li>
+                        <li><a href="{% url 'export_raktarkeszlet' %}">Raktárkészlet export</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+            </ul>
+            {% include 'app/loginpartial.html' %}
+        </div>
+    </div>
+</nav>
+<div class="body-content">
+    {% block content %}{% endblock %}
+</div>
+<script src="{% static 'app/scripts/jquery-3.1.0.min.js' %}"></script>
+<script src="{% static 'app/scripts/bootstrap.js' %}"></script>
+<script src="{% static 'app/scripts/jquery-ui.min.js' %}"></script>
+<script src="{% static 'app/scripts/jszip.min.js' %}"></script>
+<script src="{% static 'app/scripts/dx.all.js' %}"></script>
+<script src="{% static 'app/scripts/jquery.formset.js' %}"></script>
+<script src="{% static 'app/scripts/respond.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,111 @@
+ {% extends "app/layout.html" %}
+
+{% block content %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termék értékesítés</h5></div>
+    <div class="panel-body">
+        <div class="col-md-12">
+            <div class="col-md-6">
+                <h3>Alapadatok: </h3>
+                <table id="termek" class="table table-striped" cellspacing="0" width="100%">
+                    <tr>
+                        <td width="30%"><h4>Termék neve: </h4></td>
+                        <td><h4>{{termek.termek_nev}}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Gyári cikkszám: </h4></td>
+                        <td><h4>{{termek.gyari_cikkszam}}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Saját cikkszám: </h4></td>
+                        <td><h4>{% if termek.sajat_cikkszam %}{{termek.sajat_cikkszam}} {% endif %}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Termék bolti ára:</h4></td>
+                        <td><h4>{{termek.ar_bolt_brutto }} Ft / {{termek.mennyisegi_egyseg}}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Webáruház bruttó ár:</h4></td>
+                        <td><h4><span id="web_brutto"></span> Ft</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Webáruház nettó ár:</h4></td>
+                        <td><h4>{{ termek.ar_web_netto}} Ft / {{termek.mennyisegi_egyseg}}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Elhelyezés:</h4></td>
+                        <td><h4>{% if termek.elhelyezes%}{{termek.elhelyezes}}{% endif %}</h4></td>
+                    </tr>
+<!--                    <tr>-->
+<!--                        <td width="30%"><h4>Link:</h4></td>-->
+<!--                        <td><h4>{% if termek.web_link %} <a href="{{termek.web_link}}" target="_blank">{{termek.web_link|truncatechars:50}}</a>-->
+<!--                            {% endif %}</h4></td>-->
+<!--                    </tr>-->
+                    <tr>
+                        <td width="30%"><h4>Termék kategóriája:</h4></td>
+                        <td><h4>{{termek.termekkategoria.termekkategoria}}</h4></td>
+                    </tr>
+                </table>
+                <Textarea rows="6" class="form-control" placeholder="Megjegyzés">{{termek.megjegyzes}}</Textarea>
+            </div>
+
+            <div class="col-md-6">
+                <h3>Értékesítés: </h3>
+                <div class="col-md-6">
+                    {% load widget_tweaks %}
+                    <form method="POST" role="form">
+                        {% csrf_token %}
+                        <h4>Mennyiség: ({{termek.mennyisegi_egyseg}}) </h4>
+                        {{ form.eladas_mennyiseg|add_class:"form-control ertekesit_input"|attr:"autofocus"|attr:"tabindex:1"}}
+                        {{ form.eladas_mennyiseg.errors }}
+                        <h4>Raktár: </h4>
+                        {{ form.raktar|add_class:"form-control ertekesit_raktar_input"|attr:"tabindex:3"}}
+                        {{ form.raktar.errors }}
+                </div>
+                <div class="col-md-6">
+                    <h4>Eladási ár:</h4>
+                    {{ form.ar_eladas_brutto|add_class:"form-control ertekesit_input"|attr:"tabindex:2"}}
+                    {{ form.ar_eladas_brutto.errors }}
+                </div>
+                <div class="top">
+                    <button style="margin: auto;display:block;font-size: 45px" type="submit" class="btn btn-success"
+                            onclick="window.location.href='#''" tabindex="4">
+                        Értékesít
+                    </button>
+                </div>
+                </form>
+
+                <hr>
+                <h3>Raktárkészlet információ: </h3>
+                <table id="raktar" class="table table-striped" cellspacing="0" width="100%">
+                    <tr>
+                        <td width="30%"><h4> Nagyker:</h4></td>
+                        <td><h4>{{termek.nagyker_keszlet}} {{termek.mennyisegi_egyseg}}</h4></td>
+                    </tr>
+                    {% for k in raktarkeszlet %}
+                    <tr>
+                        <td width="30%"><h4> {{k.raktar}}:</h4></td>
+                        <td><h4>{{k.keszlet}} {{termek.mennyisegi_egyseg}}</h4></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Webáruház nettó árából bruttó számolás
+    ar = parseFloat('{{ termek.ar_web_netto }}'.replace(/,/, '.'));
+    document.getElementById("web_brutto").innerHTML = ar * 1.27;
+
+    // Eladási ár input mezőbe írás
+    ar = "{{termek.ar_bolt_brutto }}";
+    document.getElementById("id_ar_eladas_brutto").value = ar.replace(/\s+/g, '');
+
+</script>
+{% endblock %}
+

@@ -1,0 +1,136 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+{% load humanize %}
+
+<div class="panel panel-primary">
+    <div class="panel-heading"><h5 class="panel-title">Termék értékesítés</h5></div>
+    <div class="panel-body">
+        <div class="col-md-12">
+            <div class="col-md-6">
+                <h3>Alapadatok: </h3>
+                <table id="termek" class="table table-striped" cellspacing="0" width="100%">
+                    <tr>
+                        <td width="30%"><h4>Termék neve: </h4></td>
+                        <td><h4>{{termek.termek_nev}}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Gyári cikkszám: </h4></td>
+                        <td><h4>{{termek.gyari_cikkszam}}</h4></td>
+                    </tr>
+<!--                    <tr>-->
+<!--                        <td width="30%"><h4>Saját cikkszám: </h4></td>-->
+<!--                        <td><h4>{% if termek.sajat_cikkszam %}{{termek.sajat_cikkszam}} {% endif %}</h4></td>-->
+<!--                    </tr>-->
+                    <tr>
+                        <td width="30%"><h4>Nagyker nettó ár:</h4></td>
+                        <td><h4>{% if termek.ar_web_netto|intcomma %}{{ termek.ar_web_netto}} Ft / {{termek.mennyisegi_egyseg}}{% endif %}</h4></td>
+                    </tr>
+                    <tr>
+                        <td width="30%"><h4>Utolsó bevételezett nettó ár:</h4></td>
+                        <td><h4>{% if last_bevetel_ar.ar_bevetel_netto|intcomma %}{{ last_bevetel_ar.ar_bevetel_netto}} Ft {% endif %}</h4></td>
+                    </tr>
+                    {% if termek.alap_bolt_ar_brutto %}
+                        <tr>
+                            <td width="30%"><h4>Termék bolti bruttó ára ({{set.alap_aruhaz_nev }}):</h4></td>
+                            <td><h4>{{termek.alap_bolt_ar_brutto|intcomma }} Ft / {{termek.mennyisegi_egyseg}}</h4></td>
+                        </tr>
+                    {% endif %}
+                    {% if termek.masodik_bolt_ar_brutto %}
+                        <tr>
+                            <td width="30%"><h4>Termék bolti bruttó ára ({{set.masodik_aruhaz_nev }}):</h4></td>
+                            <td><h4>{{termek.masodik_bolt_ar_brutto|intcomma }} Ft / {{termek.mennyisegi_egyseg}}</h4></td>
+                        </tr>
+                    {% endif %}
+                    {% if termek.harmadik_bolt_ar_brutto %}
+                        <tr>
+                            <td width="30%"><h4>Termék bolti bruttó ára ({{set.harmadik_aruhaz_nev }}):</h4></td>
+                            <td><h4>{{termek.harmadik_bolt_ar_brutto|intcomma }} Ft / {{termek.mennyisegi_egyseg}}</h4></td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <td width="30%"><h4>Elhelyezés:</h4></td>
+                        <td><h4>{% if termek.elhelyezes%}{{termek.elhelyezes}}{% endif %}</h4></td>
+                    </tr>
+<!--                    <tr>-->
+<!--                        <td width="30%"><h4>Link:</h4></td>-->
+<!--                        <td><h4>{% if termek.web_link %} <a href="{{termek.web_link}}" target="_blank">{{termek.web_link|truncatechars:50}}</a>-->
+<!--                            {% endif %}</h4></td>-->
+<!--                    </tr>-->
+                    <tr>
+                        <td width="30%"><h4>Termék kategóriája:</h4></td>
+                        <td><h4>{{termek.termekkategoria.termekkategoria}}</h4></td>
+                    </tr>
+                </table>
+                <Textarea rows="6" class="form-control" placeholder="Megjegyzés">{{termek.megjegyzes}}</Textarea>
+            </div>
+
+            <div class="col-md-6">
+                <h3>Értékesítés: </h3>
+                <div class="col-md-6">
+                    {% load widget_tweaks %}
+                    <form method="POST" role="form">
+                        {% csrf_token %}
+                        <h4>Mennyiség: ({{termek.mennyisegi_egyseg}}) </h4>
+                        {{ form.eladas_mennyiseg|add_class:"form-control ertekesit_input"|attr:"autofocus"|attr:"tabindex:1"}}
+                        {{ form.eladas_mennyiseg.errors }}
+                        <h4>Raktár: </h4>
+                        {{ form.raktar|add_class:"form-control ertekesit_raktar_input"|attr:"tabindex:3"}}
+                        {{ form.raktar.errors }}
+                </div>
+                <div class="col-md-6">
+                    <h4>Eladási ár:</h4>
+                    {{ form.ar_eladas_brutto|add_class:"form-control ertekesit_input"|attr:"tabindex:2"}}
+                    {{ form.ar_eladas_brutto.errors }}
+                </div>
+                <div class="top">
+                    <button style="margin: auto;display:block;font-size: 45px" type="submit" class="btn btn-success"
+                            onclick="window.location.href='#''" tabindex="4">
+                        Értékesít
+                    </button>
+                </div>
+                </form>
+
+                <hr>
+                <h3>Raktárkészlet információ: </h3>
+                <table id="raktar" class="table table-striped" cellspacing="0" width="100%">
+                    <tr>
+                        <td width="30%"><h4> Nagyker:</h4></td>
+                        <td><h4>{% if termek.nagyker_keszlet == 0 %} Nincs a nagykerben {% else %}{{termek.nagyker_keszlet}} {{termek.mennyisegi_egyseg}}{% endif %}</h4></td>
+                    </tr>
+                    {% for k in raktarkeszlet %}
+                    <tr>
+                        <td width="30%"><h4> {{k.raktar}}:</h4></td>
+                        <td><h4>{{k.keszlet}} {{termek.mennyisegi_egyseg}}</h4></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Webáruház nettó árából bruttó számolás és megjelenítés
+<!--    ar_web = "{{ termek.ar_web_netto }}";-->
+<!--    ar_web = ar_web.replace(',', '.');-->
+<!--    ar_web = ar_web.replace(/\s+/g, '');-->
+<!--    var ar_web_afa = ar_web * 1.27;-->
+<!--    document.getElementById("web_brutto").innerHTML = ar_web_afa.toLocaleString('hu-HU') + " Ft";-->
+
+    // Eladási ár input mezőbe írás
+    ar_bolt = "{{termek.ar_bolt_brutto }}";
+    document.getElementById("id_ar_eladas_brutto").value = ar_bolt.replace(/\s+/g, '');
+
+    // Ha a webes ár magassabb mint a bolti akkor piros színnel jelzem
+    ar_bolt = ar_bolt.replace(/\s+/g, '');
+    ar_bolt = parseFloat(ar_bolt)
+    if (ar_web_afa > ar_bolt){
+        web_brutto.style.color = "red"
+    }
+
+</script>
+{% endblock %}
+
