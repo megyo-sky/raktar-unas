@@ -62,7 +62,7 @@
                         <td><h4>{{termek.termekkategoria.termekkategoria}}</h4></td>
                     </tr>
                 </table>
-                <Textarea rows="6" class="form-control" placeholder="Megjegyzés">{{termek.megjegyzes}}</Textarea>
+                <Textarea rows="6" class="form-control" placeholder="Megjegyzés">{% if termek.megjegyzes %}{{termek.megjegyzes}} {% endif %}</Textarea>
             </div>
 
             <div class="col-md-6">

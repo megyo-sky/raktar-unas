@@ -29,18 +29,19 @@
 <div class="panel-body">
         <h4>Bevételezés alapadatai:</h4><br>
             {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                {% endfor %}
-            </ul>
+                <div id="message" class="alert alert-success" role="alert">
+                    {% for message in messages %}
+                        {{ message }}
+                    {% endfor %}
+                </div>
             {% endif %}
         {% if hibas_felvitel %}
-            <h4 style="color:red"color>Az alábbi termékeket nem sikerült bevételezni:</h4>
-            {% for hiba in hibas_felvitel %}
-                - {{hiba}} <br>
-            {% endfor %}
-        <hr><br>
+            <div class="alert alert-danger" role="alert">
+                <h4 style="color:red"color>Hiba történt!</h4>
+                {% for hiba in hibas_felvitel %}
+                    {{hiba}}<br>
+                {% endfor %}
+            </div>
         {% endif %}
 
         {% load widget_tweaks %}
@@ -191,6 +192,10 @@ $(".ui-autocomplete-input").focusout (function() {
     }
 
     $.datepicker.setDefaults($.datepicker.regional['hu']);
+
+    setTimeout(function(){
+        $('#message').fadeOut();
+    }, 5000);
 </script>
 
 {% endblock %}

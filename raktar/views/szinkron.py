@@ -3,7 +3,7 @@ import os
 from raktar.models import Termek, Beallitas
 from django.conf import settings
 import xml.etree.ElementTree as et
-import requests
+import requests, csv
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 
@@ -173,24 +173,48 @@ def unas_price_update(aruhaz, token):
     print("Ár módosítás kész: " + aruhaz)
 
 
+def mas_download():
+    url = 'https://www.mastroweld.hu/files/csv_export/sajat.csv'
+    data = requests.get(url)
+    data.encoding = 'utf-8'
+    lines = data.text.splitlines()
+    reader = csv.reader(lines, delimiter=';')
+    for row in reader:
+        sku=row[0]
+        keszlet= row[5]
+        netto_ar=row[8]
+
+        print(" sku: "+sku+" --- keszlet: "+keszlet+" ---ar: "+netto_ar)
+
+
 def szinkron(request):
-    dataclean('alap_aruhaz')
-    dataclean('masodik_aruhaz')
-    dataclean('harmadik_aruhaz')
+    mas_download()
 
-    token = getUnasToken('alap_aruhaz')
-    unas_download('alap_aruhaz', token)
-    unas_betolto('alap_aruhaz')
-    # unas_price_update('alap_aruhaz', token)
+    # set = Beallitas.objects.get(id=1)
+    #
+    # if set.alap_aruhaz_aktiv:
+    #     dataclean('alap_aruhaz')
+    #     token = getUnasToken('alap_aruhaz')
+    #     unas_download('alap_aruhaz', token)
+    #     unas_betolto('alap_aruhaz')
+    #     # unas_price_update('alap_aruhaz', token)
+    #
+    #
+    # if set.masodik_aruhaz_aktiv:
+    #     dataclean('masodik_aruhaz')
+    #     token = getUnasToken('masodik_aruhaz')
+    #     unas_download('masodik_aruhaz', token)
+    #     unas_betolto('masodik_aruhaz')
+    #     # unas_price_update('masodik_aruhaz', token)
+    #
+    #
+    # if set.harmadik_aruhaz_aktiv:
+    #     dataclean('harmadik_aruhaz')
+    #     token = getUnasToken('harmadik_aruhaz')
+    #     unas_download('harmadik_aruhaz', token)
+    #     unas_betolto('harmadik_aruhaz')
+    #     # unas_price_update('harmadik_aruhaz', token)
 
-    token = getUnasToken('masodik_aruhaz')
-    unas_download('masodik_aruhaz', token)
-    unas_betolto('masodik_aruhaz')
-    # unas_price_update('masodik_aruhaz', token)
 
-    token = getUnasToken('harmadik_aruhaz')
-    unas_download('harmadik_aruhaz', token)
-    unas_betolto('harmadik_aruhaz')
-    unas_price_update('harmadik_aruhaz', token)
 
     return HttpResponse('Siker', content_type="text/plain")

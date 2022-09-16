@@ -58,8 +58,8 @@ def bevetel_new(request):
             else:
                 return HttpResponse('Nincs termék!', content_type="text/plain")
         else:
-            hibas_felvitel.append('Nem valid form')
-            messages.add_message(request, messages.SUCCESS, 'Hibás felvitel')
+            hibas_felvitel.append('Nem valid form. Nem sikerült elküldeni az adatokat')
+            # messages.add_message(request, messages.SUCCESS, 'Hibás felvitel')
 
     form = BevetelalapForm()
     termekform = TermekFormset()

@@ -14,6 +14,9 @@ class BevetelAdmin(admin.ModelAdmin):
 class BeallitasAndmin(admin.ModelAdmin):
     list_display = ('alap_aruhaz_nev',)
 
+class ErtekesitAndmin(admin.ModelAdmin):
+    list_display = ('eladas_datum',)
 
 admin.site.register(Bevetel, BevetelAdmin)
 admin.site.register(Beallitas, BeallitasAndmin)
+admin.site.register(Ertekesit, ErtekesitAndmin)

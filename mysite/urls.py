@@ -107,7 +107,7 @@ urlpatterns = [
     path('export_bevetel/', raktar.views.export_bevetel, name='export_bevetel'),
     path('export_raktarkeszlet/', raktar.views.export_raktarkeszlet, name='export_raktarkeszlet'),
 
-    path('tes/', raktar.views.szinkron, name='szinkron'),
+    path('szinkron/', raktar.views.szinkron, name='szinkron'),
     path('__debug__/', include(debug_toolbar.urls)),
 ]
 if settings.DEBUG:
