@@ -33,8 +33,8 @@ class Termek(models.Model):
         ('méter', 'Méter'),
     )
     termek_nev = models.CharField(max_length=255, blank=False, null=False)
-    gyari_cikkszam = models.CharField(max_length=255, blank=False, null=False)
-    sajat_cikkszam = models.CharField(max_length=255, blank=True, null=True)
+    gyari_cikkszam = models.CharField(max_length=255, blank=False, null=False, db_index=True,)
+    sajat_cikkszam = models.CharField(max_length=255, blank=True, null=True, db_index=True,)
     ar_nagyker_netto = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0)
     alap_bolt_ar_brutto = models.IntegerField(validators=[MinValueValidator(0)], blank=True, null=True)
     masodik_bolt_ar_brutto = models.IntegerField(validators=[MinValueValidator(0)], blank=True, null=True)

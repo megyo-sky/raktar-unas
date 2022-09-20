@@ -38,7 +38,7 @@ class DokForm(forms.ModelForm):
 class TermekForm(forms.ModelForm):
     termek_nev = forms.CharField(label='Termék neve: ', max_length=255, required=True)
     gyari_cikkszam = forms.CharField(label='Gyári cikkszám: ', max_length=255, required=True)
-    # sajat_cikkszam = forms.CharField(label='Saját cikkszám: ', max_length=255, required=False)
+    sajat_cikkszam = forms.CharField(label='Saját cikkszám: ', max_length=255, required=False)
     ar_nagyker_netto = forms.DecimalField(label='Nagyker nettó ár: ', required=True)
     alap_bolt_ar_brutto = forms.IntegerField(label='Alap áruház bolti bruttó ár: ', required=True)
     masodik_bolt_ar_brutto = forms.IntegerField(label='Második áruház bolti bruttó ár: ', required=False)
@@ -61,7 +61,7 @@ class TermekForm(forms.ModelForm):
 
     class Meta(forms.ModelForm):
         model = Termek
-        fields = ('termek_nev', 'gyari_cikkszam', 'ar_nagyker_netto', 'alap_bolt_ar_brutto', 'masodik_bolt_ar_brutto', 'harmadik_bolt_ar_brutto', 'min_keszlet','nagyker_keszlet', 'mennyisegi_egyseg','termekkategoria','termekgyarto', 'elhelyezes','megjegyzes','aktiv')
+        fields = ('termek_nev', 'gyari_cikkszam', 'sajat_cikkszam', 'ar_nagyker_netto', 'alap_bolt_ar_brutto', 'masodik_bolt_ar_brutto', 'harmadik_bolt_ar_brutto', 'min_keszlet','nagyker_keszlet', 'mennyisegi_egyseg','termekkategoria','termekgyarto', 'elhelyezes','megjegyzes','aktiv')
 
 
 class TermekKategoriaForm(forms.ModelForm):

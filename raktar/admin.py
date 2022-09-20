@@ -14,6 +14,12 @@ class BevetelAdmin(admin.ModelAdmin):
 class BeallitasAndmin(admin.ModelAdmin):
     list_display = ('alap_aruhaz_nev',)
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj = None):
+        return False
+
 class ErtekesitAndmin(admin.ModelAdmin):
     list_display = ('eladas_datum',)
 

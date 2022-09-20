@@ -17,7 +17,10 @@ class Beallitas(models.Model):
     harmadik_aruhaz_aktiv = models.BooleanField(default=False)
     harmadik_aruhaz_kezdeti_arszinkron = models.BooleanField(default=False)
     harmadik_aruhaz_clean = models.BooleanField(default=False)
-
+    iweld_szinkron = models.BooleanField(default=False)
+    iweld_api_nev = models.CharField(max_length=255, blank=True, null=True)
+    iweld_api_pass = models.CharField(max_length=255, blank=True, null=True)
+    Mastroweld_szinkron = models.BooleanField(default=False)
 
     class Meta:
         verbose_name_plural = "Beállítások"
