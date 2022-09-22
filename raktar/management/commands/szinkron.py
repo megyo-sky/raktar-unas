@@ -9,8 +9,6 @@ from django.http import HttpResponse
 from django.core.management.base import BaseCommand
 
 
-
-
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         set = Beallitas.objects.get(id=1)

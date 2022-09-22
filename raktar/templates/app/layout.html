@@ -51,16 +51,16 @@
                 <li><a href="{% url 'index' %}">Értékesítés</a></li>
                 {% endif %}
                 {% if user.is_staff %}
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
-                       aria-expanded="false">Exportok<span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{% url 'export_termek' %}">Termék export</a></li>
-                        <li><a href="{% url 'export_bevetel' %}">Bevétel export</a></li>
-                        <li><a href="{% url 'export_ertekesit' %}">Értékesítés export</a></li>
-                        <li><a href="{% url 'export_raktarkeszlet' %}">Raktárkészlet export</a></li>
-                    </ul>
-                </li>
+<!--                <li class="dropdown">-->
+<!--                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"-->
+<!--                       aria-expanded="false">Exportok<span class="caret"></span></a>-->
+<!--                    <ul class="dropdown-menu">-->
+<!--                        <li><a href="{% url 'export_termek' %}">Termék export</a></li>-->
+<!--                        <li><a href="{% url 'export_bevetel' %}">Bevétel export</a></li>-->
+<!--                        <li><a href="{% url 'export_ertekesit' %}">Értékesítés export</a></li>-->
+<!--                        <li><a href="{% url 'export_raktarkeszlet' %}">Raktárkészlet export</a></li>-->
+<!--                    </ul>-->
+<!--                </li>-->
                 {% endif %}
             </ul>
             {% include 'app/loginpartial.html' %}

@@ -29,10 +29,11 @@
             <tr>
                 <th>Gyári cikkszám</th>
 <!--                <th>Saját cikkszám</th>-->
-                <th>Termékkategória</th>
+<!--                <th>Termékkategória</th>-->
                 <th>Termék neve</th>
-                <th>Bolti bruttó ár</th>
-                <th>Link</th>
+                <th>Nagyker nettó ár</th>
+                <th>Mennyiség</th>
+                <th>Mennyiségi egység</th>
                 <th>Eladás</th>
             </thead>
             <tbody>
@@ -41,10 +42,11 @@
             <tr>
                 <td width="10%">{{ t.gyari_cikkszam }}</td>
 <!--                <td width="10%">{% if t.sajat_cikkszam %} {{ t.sajat_cikkszam }} {% endif %}</td>-->
-                <td width="20%">{{ t.termekkategoria.termekkategoria }}</td>
+<!--                <td width="20%">{{ t.termekkategoria.termekkategoria }}</td>-->
                 <td width="30%">{{ t.termek_nev }}</td>
-                <td width="10%">{{ t.ar_bolt_brutto }}</td>
-                <td width="10%">{% if t.web_link %} <a href="{{ t.web_link }}">{{ t.web_link }} </a> {% endif %}</td>
+                <td width="10%">{{ t.ar_nagyker_netto }}</td>
+                <td width="10%">{% if t.nagyker_keszlet %} {{ t.nagyker_keszlet }}  {% endif %}</td>
+                <td width="10%">{% if t.nagyker_keszlet %} {{ t.mennyisegi_egyseg }}  {% endif %}</td>
                 <td>
                     <button style="margin-left:40px;" type="button" class="btn btn-success"
                             onclick="window.location.href='{% url 'termek_ertekesites' pk=t.id %}'">

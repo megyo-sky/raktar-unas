@@ -59,30 +59,30 @@ $(function(){
         },
         columns: [
         {
-		    caption: "Étrékesítés",
-			width: 80,
+		    caption: "Értékesít",
+			width: 60,
             alignment: 'center',
             cellTemplate: function (container, options) {
                 $('<a/>').addClass('dx-link glyphicon glyphicon-shopping-cart')
                     //.text('Értékesít')
                     .on('dxclick', function () {
                         var currentRow=$(this).closest("tr");
-                        var termek_id = currentRow.find("td:eq(15)").text();
+                        var termek_id = currentRow.find("td:eq(17)").text();
                         location.href = '/termek-ertekesites/' + termek_id + '/show';
                     })
                     .appendTo(container);
                 }
         },
     	 {
-		    caption: "Művelet",
-			width: 80,
+		    caption: "Szerkeszt",
+			width: 60,
             alignment: 'center',
             cellTemplate: function (container, options) {
                 $('<a/>').addClass('dx-link glyphicon glyphicon-pencil')
                     //.text('Módosít')
                     .on('dxclick', function () {
                         var currentRow=$(this).closest("tr");
-                        var termek_id = currentRow.find("td:eq(15)").text();
+                        var termek_id = currentRow.find("td:eq(17)").text();
                         location.href = '/termek/' + termek_id + '/edit';
                     })
                     .appendTo(container);
@@ -101,14 +101,24 @@ $(function(){
         },
         {
             dataField: "sajat_cikkszam",
-            width: 150,
+            width: 60,
             caption: "Saját cikkszám",
         },
         {
             dataField: "ar_nagyker_netto",
-            width: 150,
+            width: 100,
             caption: "Nagyker nettó ár",
             dataType: "number",
+        },
+       {
+            dataField: "nagyker_keszlet",
+            width: 100,
+            caption: "Nagyker készlet",
+        },
+        {
+            dataField: "mennyisegi_egyseg",
+            width: 60,
+            caption: "M.egység",
         },
         {
             dataField: "alap_bolt_ar_brutto",
@@ -128,6 +138,7 @@ $(function(){
             caption: "3_Bolti bruttó ár",
             dataType: "number",
         },
+
         {
             dataField: "termekkategoria",
             width: 150,
@@ -153,7 +164,7 @@ $(function(){
 <!--                    //.text("Link")-->
 <!--                    .on('dxclick', function () {-->
 <!--                        var currentRow=$(this).closest("tr");-->
-<!--                        var termek_id = currentRow.find("td:eq(15)").text();-->
+<!--                        var termek_id = currentRow.find("td:eq(19)").text();-->
 <!--                        window.open(options.value, "_blank");-->
 <!--                    })-->
 <!--                    .appendTo(container);-->
@@ -168,11 +179,6 @@ $(function(){
             dataField: "min_keszlet",
             width: 100,
             caption: "Minimum készlet",
-        },
-        {
-            dataField: "mennyisegi_egyseg",
-            width: 120,
-            caption: "Mennyiségi egység",
         },
         {
             dataField: "aktiv",
@@ -194,7 +200,7 @@ $(function(){
                     //.text('Dokumentumok')
                     .on('dxclick', function () {
                         var currentRow=$(this).closest("tr");
-                        var termek_id = currentRow.find("td:eq(15)").text();
+                        var termek_id = currentRow.find("td:eq(17)").text();
                         location.href = '/dokumentum/' + termek_id + '/list';
                     })
                     .appendTo(container);

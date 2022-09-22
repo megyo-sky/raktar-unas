@@ -88,7 +88,7 @@ class ErtekesitForm(forms.ModelForm):
         self.fields['raktar'].required = True
 
     eladas_mennyiseg = forms.DecimalField(label='Mennyiség: ', required=True)
-    ar_eladas_brutto = forms.IntegerField(label='Eladási ár: ', required=True)
+    ar_eladas_brutto = forms.IntegerField(label='Eladási ár: ', required=True, initial=0 )
     # raktar = forms.ModelChoiceField(queryset= Raktar.objects.filter(user=current_user), required=True, label='Raktárból: ', empty_label=None)
     megjegyzes = forms.CharField(required=False, label="Megjegyzés", widget=forms.Textarea)
 
