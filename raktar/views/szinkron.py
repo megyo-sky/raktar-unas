@@ -1,10 +1,10 @@
 import datetime
 import os
-from raktar.models import Termek, Beallitas
+from raktar.models import Termek, Beallitas, Raktarkeszlet
 from django.conf import settings
 import xml.etree.ElementTree as et
 import requests, csv
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 
 
@@ -64,21 +64,21 @@ def dataclean(aruhaz):
 
     if aruhaz == "alap_aruhaz":
         if set.alap_aruhaz_clean:
-            Termek.objects.update(alap_aruhaz = 0, alap_bolt_ar_brutto = 0)
+            Termek.objects.update(alap_aruhaz=0, alap_bolt_ar_brutto=0)
         else:
             Termek.objects.update(alap_aruhaz=0)
-        Beallitas.objects.filter(id=1).update(alap_aruhaz_clean = 0)
+        Beallitas.objects.filter(id=1).update(alap_aruhaz_clean=0)
 
     elif aruhaz == "masodik_aruhaz":
         if set.masodik_aruhaz_clean:
-            Termek.objects.update(masodik_aruhaz = 0, masodik_bolt_ar_brutto = 0)
+            Termek.objects.update(masodik_aruhaz=0, masodik_bolt_ar_brutto=0)
         else:
             Termek.objects.update(masodik_aruhaz=0)
         Beallitas.objects.filter(id=1).update(masodik_aruhaz_clean=0)
 
     elif aruhaz == "harmadik_aruhaz":
         if set.harmadik_aruhaz_clean:
-            Termek.objects.update(harmadik_aruhaz = 0, harmadik_bolt_ar_brutto = 0)
+            Termek.objects.update(harmadik_aruhaz=0, harmadik_bolt_ar_brutto=0)
         else:
             Termek.objects.update(harmadik_aruhaz=0)
         Beallitas.objects.filter(id=1).update(harmadik_aruhaz_clean=0)
@@ -92,6 +92,7 @@ def unas_betolto(aruhaz):
         xml = str(os.path.join(settings.MEDIA_ROOT) + '/import/'+aruhaz+'_termek_import.xml')
         tree = et.parse(xml)
         root = tree.getroot()
+        dataclean(aruhaz)
         # print(root.tag)
         list=[]
         for child in root:
@@ -102,24 +103,24 @@ def unas_betolto(aruhaz):
                 egyseg = (child.find('Unit').text)
                 price = int(float(child.find('Prices')[1].find('Gross').text))
 
-                if Termek.objects.filter(gyari_cikkszam = cikkszam).exists():
+                if Termek.objects.filter(gyari_cikkszam=cikkszam).exists():
                     if aruhaz == "alap_aruhaz":
                         if set.alap_aruhaz_kezdeti_arszinkron:
-                            Termek.objects.filter(gyari_cikkszam = cikkszam).update(alap_aruhaz=True, alap_bolt_ar_brutto=price)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(alap_aruhaz=True, alap_bolt_ar_brutto=price)
                         else:
                             Termek.objects.filter(gyari_cikkszam=cikkszam).update(alap_aruhaz=True)
 
                     elif aruhaz == "masodik_aruhaz":
                         if set.masodik_aruhaz_kezdeti_arszinkron:
-                            Termek.objects.filter(gyari_cikkszam = cikkszam).update(masodik_aruhaz=True, masodik_bolt_ar_brutto=price)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(masodik_aruhaz=True, masodik_bolt_ar_brutto=price)
                         else:
-                            Termek.objects.filter(gyari_cikkszam = cikkszam).update(masodik_aruhaz=True)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(masodik_aruhaz=True)
 
                     elif aruhaz == "harmadik_aruhaz":
                         if set.harmadik_aruhaz_kezdeti_arszinkron:
-                            Termek.objects.filter(gyari_cikkszam = cikkszam).update(harmadik_aruhaz=True, harmadik_bolt_ar_brutto=price)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(harmadik_aruhaz=True, harmadik_bolt_ar_brutto=price)
                         else:
-                            Termek.objects.filter(gyari_cikkszam = cikkszam).update(harmadik_aruhaz=True)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(harmadik_aruhaz=True)
 
                 else:
                     if aruhaz == "alap_aruhaz":
@@ -157,11 +158,11 @@ def unas_price_update(aruhaz, token):
     param = '<Products>'
 
     if aruhaz == "alap_aruhaz":
-        termekek = 	Termek.objects.filter(alap_aruhaz=True).values_list('gyari_cikkszam', 'alap_bolt_ar_brutto')
+        termekek = Termek.objects.filter(alap_aruhaz=True).values_list('gyari_cikkszam', 'alap_bolt_ar_brutto')
     elif aruhaz == "masodik_aruhaz":
-        termekek = 	Termek.objects.filter(masodik_aruhaz=True).values_list('gyari_cikkszam', 'masodik_bolt_ar_brutto')
+        termekek = Termek.objects.filter(masodik_aruhaz=True).values_list('gyari_cikkszam', 'masodik_bolt_ar_brutto')
     elif aruhaz == "harmadik_aruhaz":
-        termekek = 	Termek.objects.filter(harmadik_aruhaz=True).values_list('gyari_cikkszam', 'harmadik_bolt_ar_brutto')
+        termekek = Termek.objects.filter(harmadik_aruhaz=True).values_list('gyari_cikkszam', 'harmadik_bolt_ar_brutto')
     for row in termekek:
         sku = row[0]
         price = row[1]
@@ -175,7 +176,6 @@ def unas_price_update(aruhaz, token):
          print(response.text)
     else:
         print(response.text)
-
 
     print("Ár módosítás kész: " + aruhaz)
 
@@ -192,19 +192,21 @@ def mas_nagyker_szinkron():
     #     next(reader)
 
     for index, row in enumerate(reader):
-        sku=row[0].strip()
-        keszlet= row[5].strip()
-        netto_ar=row[7].strip()
-        akcios_ar=row[8].strip()
+        sku = row[0].strip()
+        keszlet = row[5].strip()
+        netto_ar = row[7].strip()
+        akcios_ar = row[8].strip()
+        nagyker_ar = 0
+
         if akcios_ar != '' and akcios_ar != 0:
-            netto_ar = akcios_ar
-        elif netto_ar == '':
-            netto_ar = 0
+            nagyker_ar = akcios_ar
+        elif netto_ar != '' and netto_ar != 0:
+            nagyker_ar = netto_ar
 
         try:
             termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='mas')
             try:
-                termek.ar_nagyker_netto=netto_ar
+                termek.ar_nagyker_netto=nagyker_ar
                 termek.nagyker_keszlet=keszlet
                 termek.save()
                 print(sku + " - Sikeres Mas termék szinkron")
@@ -214,6 +216,7 @@ def mas_nagyker_szinkron():
         except:
             pass
         # print(" sku: " + sku + " --- keszlet: " + keszlet + " ---ar: " + netto_ar)
+
 
 def iweld_stock_nagyker_szinkron(nev, pas):
     url = 'https://sync.vectorcloud.hu:5432/szinkron/getdata?resourceName=VA_stock&full=1'
@@ -242,39 +245,64 @@ def iweld_stock_nagyker_szinkron(nev, pas):
             except:
                 pass
 
+def sajat_keszlet(sku):
+    raktarkeszlet = Raktarkeszlet.objects.filter(termek__id=sku, raktar__id=1)
+    print(raktarkeszlet)
+    return False
+
+
+def keszlet_to_unas(aruhaz):
+    if aruhaz == "alap_aruhaz":
+        termekek = Termek.objects.filter(alap_aruhaz=1)
+    elif aruhaz == 'masodik_aruhaz':
+        termekek = Termek.objects.filter(masodik_aruhaz=1)
+    elif aruhaz == 'harmadik_aruhaz':
+        termekek = Termek.objects.filter(harmadik_aruhaz=1)
+
+    list = []
+    for termek in termekek:
+        if termek.nagyker_keszlet > 0:
+            list.append('"' + termek.gyari_cikkszam + '";"Van készleten"')
+        elif sajat_keszlet(termek.gyari_cikkszam):
+            list.append('"'+termek.gyari_cikkszam+'";"Van készleten"')
+        else:
+            pass # list.append('"' + termek.gyari_cikkszam + '";"Nincs készleten"')
+
+    print(list)
+
 
 def szinkron(request):
-    set = Beallitas.objects.get(id=1)
-
-    if set.alap_aruhaz_aktiv:
-        dataclean('alap_aruhaz')
-        token = getUnasToken('alap_aruhaz')
-        unas_download('alap_aruhaz', token)
-        unas_betolto('alap_aruhaz')
-        # unas_price_update('alap_aruhaz', token)
-
-
-    if set.masodik_aruhaz_aktiv:
-        dataclean('masodik_aruhaz')
-        token = getUnasToken('masodik_aruhaz')
-        unas_download('masodik_aruhaz', token)
-        unas_betolto('masodik_aruhaz')
-        # unas_price_update('masodik_aruhaz', token)
-
-
-    if set.harmadik_aruhaz_aktiv:
-        dataclean('harmadik_aruhaz')
-        token = getUnasToken('harmadik_aruhaz')
-        unas_download('harmadik_aruhaz', token)
-        unas_betolto('harmadik_aruhaz')
-        # unas_price_update('harmadik_aruhaz', token)
-
-    if set.iweld_szinkron:
-        nev = set.iweld_api_nev
-        pas = set.iweld_api_pass
-        iweld_stock_nagyker_szinkron(nev, pas)
-
-    if set.Mastroweld_szinkron:
-        mas_nagyker_szinkron()
+    # keszlet_to_unas('alap_aruhaz')
+    # keszlet_to_unas('masodik_aruhaz')
+    sajat_keszlet(1)
+    # set = Beallitas.objects.get(id=1)
+    #
+    # if set.alap_aruhaz_aktiv:
+    #     token = getUnasToken('alap_aruhaz')
+    #     unas_download('alap_aruhaz', token)
+    #     unas_betolto('alap_aruhaz')
+    #     # unas_price_update('alap_aruhaz', token)
+    #
+    #
+    # if set.masodik_aruhaz_aktiv:
+    #     token = getUnasToken('masodik_aruhaz')
+    #     unas_download('masodik_aruhaz', token)
+    #     unas_betolto('masodik_aruhaz')
+    #     # unas_price_update('masodik_aruhaz', token)
+    #
+    #
+    # if set.harmadik_aruhaz_aktiv:
+    #     token = getUnasToken('harmadik_aruhaz')
+    #     unas_download('harmadik_aruhaz', token)
+    #     unas_betolto('harmadik_aruhaz')
+    #     # unas_price_update('harmadik_aruhaz', token)
+    #
+    # if set.iweld_szinkron:
+    #     nev = set.iweld_api_nev
+    #     pas = set.iweld_api_pass
+    #     iweld_stock_nagyker_szinkron(nev, pas)
+    #
+    # if set.Mastroweld_szinkron:
+    #     mas_nagyker_szinkron()
 
     return HttpResponse('Siker', content_type="text/plain")
