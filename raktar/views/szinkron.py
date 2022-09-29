@@ -4,6 +4,7 @@ from raktar.models import Termek, Beallitas, Raktarkeszlet
 from django.conf import settings
 import xml.etree.ElementTree as et
 import requests, csv
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 
@@ -245,51 +246,81 @@ def iweld_stock_nagyker_szinkron(nev, pas):
             except:
                 pass
 
-def sajat_keszlet(sku):
-    raktarkeszlet = Raktarkeszlet.objects.filter(termek__id=sku, raktar__id=1)
-    print(raktarkeszlet)
-    return False
-
 
 def keszlet_to_unas(aruhaz):
     if aruhaz == "alap_aruhaz":
-        termekek = Termek.objects.filter(alap_aruhaz=1)
+        termekek = Termek.objects.filter(alap_aruhaz=1).exclude(sajat_cikkszam=0).exclude(sajat_cikkszam__isnull=True)
     elif aruhaz == 'masodik_aruhaz':
-        termekek = Termek.objects.filter(masodik_aruhaz=1)
+        termekek = Termek.objects.filter(masodik_aruhaz=1).exclude(sajat_cikkszam=0).exclude(sajat_cikkszam__isnull=True)
     elif aruhaz == 'harmadik_aruhaz':
-        termekek = Termek.objects.filter(harmadik_aruhaz=1)
+        termekek = Termek.objects.filter(harmadik_aruhaz=1).exclude(sajat_cikkszam=0).exclude(sajat_cikkszam__isnull=True)
 
-    list = []
+    raktarkeszlet = Raktarkeszlet.objects.values_list('termek', flat=True)
+    keszlet = set(raktarkeszlet)
+    list = ['"Cikkszám";"Paraméter: Szállítás||text|1|0|1|0|0|0|||0|1|1"']
+
     for termek in termekek:
         if termek.nagyker_keszlet > 0:
-            list.append('"' + termek.gyari_cikkszam + '";"Van készleten"')
-        elif sajat_keszlet(termek.gyari_cikkszam):
-            list.append('"'+termek.gyari_cikkszam+'";"Van készleten"')
+            list.append(termek.gyari_cikkszam + '; "Raktáron, szállítás 1-2 munkanap"')
+        elif termek.id in keszlet:
+            list.append(termek.gyari_cikkszam + '; "Raktáron, szállítás 1-2 munkanap"')
         else:
-            pass # list.append('"' + termek.gyari_cikkszam + '";"Nincs készleten"')
+            list.append(termek.gyari_cikkszam + '; "Rendelésre"')
 
-    print(list)
+    if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'import/' + aruhaz + '_keszlet_to_unas.csv')):
+        os.remove(os.path.join(settings.MEDIA_ROOT, 'import/' + aruhaz + '_keszlet_to_unas.csv'))
+
+    with open(os.path.join(settings.MEDIA_ROOT, 'import/'+aruhaz+'_keszlet_to_unas.csv'), 'w', encoding='utf-8') as f:
+        for item in list:
+            f.write("%s\n" % item)
+
+
+def unas_orders(aruhaz, token):
+    urlToken = 'https://api.unas.eu/shop/getOrder'
+    headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/xml'}
+    param = '''<Params>
+                    <Status>close_ok</Status>
+                    <LimitNum>2</LimitNum>
+                </Params>'''
+    response = requests.get(urlToken, data=param, headers=headers)
+    if response.status_code == requests.codes.ok:
+        orders = response.text
+        xml_content = response.content
+        root = et.fromstring(xml_content)
+        print(" Sikeres Unas Orders connect")
+
+        for child in root:
+            # print(child.tag, child.attrib, child.attrib ,child.text)
+            # et.dump(child)
+            key = child.find('Key').text
+            datum = child.find('Date').text
+            print(key)
+            print(datum)
+            items = child.find('Items')
+
+            for item in items:
+                sku = item.find('Sku').text
+                mennyiseg = item.find('Quantity').text
+                print(sku)
+                print(mennyiseg)
+            print("\n")
+    print("Orders kész: " + aruhaz)
 
 
 def szinkron(request):
-    # keszlet_to_unas('alap_aruhaz')
-    # keszlet_to_unas('masodik_aruhaz')
-    sajat_keszlet(1)
-    # set = Beallitas.objects.get(id=1)
-    #
+    set = Beallitas.objects.get(id=1)
+    token = getUnasToken('alap_aruhaz')
     # if set.alap_aruhaz_aktiv:
     #     token = getUnasToken('alap_aruhaz')
     #     unas_download('alap_aruhaz', token)
     #     unas_betolto('alap_aruhaz')
     #     # unas_price_update('alap_aruhaz', token)
     #
-    #
     # if set.masodik_aruhaz_aktiv:
     #     token = getUnasToken('masodik_aruhaz')
     #     unas_download('masodik_aruhaz', token)
     #     unas_betolto('masodik_aruhaz')
     #     # unas_price_update('masodik_aruhaz', token)
-    #
     #
     # if set.harmadik_aruhaz_aktiv:
     #     token = getUnasToken('harmadik_aruhaz')
@@ -304,5 +335,16 @@ def szinkron(request):
     #
     # if set.Mastroweld_szinkron:
     #     mas_nagyker_szinkron()
+
+    # if set.keszlet_to_unas_alap_aruhaz:
+    #     keszlet_to_unas('alap_aruhaz')
+    #
+    # if set.keszlet_to_unas_masodik_aruhaz:
+    #     keszlet_to_unas('masodik_aruhaz')
+    #
+    # if set.keszlet_to_unas_harmadik_aruhaz:
+    #     keszlet_to_unas('harmadik_aruhaz')
+
+    unas_orders('alap_aruhaz', token)
 
     return HttpResponse('Siker', content_type="text/plain")

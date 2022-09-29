@@ -393,8 +393,10 @@ def termek_ertekesites(request, pk):
                 keszlet_id = Raktarkeszlet.objects.get(termek=pk, raktar=ertekesit.raktar)
                 raktárkeszlet = keszlet_id.keszlet
                 uj_keszlet = raktárkeszlet - ertekesit.eladas_mennyiseg
-                if uj_keszlet <= 0:
-                    uj_keszlet = 0
+
+                # mehet mínuszba is
+                # if uj_keszlet <= 0:
+                #     uj_keszlet = 0
 
                 keszlet_id.keszlet = uj_keszlet
                 keszlet_id.save()

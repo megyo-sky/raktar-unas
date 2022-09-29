@@ -115,7 +115,7 @@ class BeveteltermekForm(forms.Form):
     # termek = forms.ModelChoiceField(queryset=Termek.objects.all(), empty_label="Kérem válasszon", required=True, label="Termék")
     termek = forms.CharField(required=True, label="Termék")
     termek_id = forms.CharField(required=True, label="Termék_id", widget=forms.HiddenInput())
-    raktar = forms.ModelChoiceField(queryset=Raktar.objects.all(), empty_label="Kérem válasszon", required=True, label="Raktár")
+    raktar = forms.ModelChoiceField(queryset=Raktar.objects.all(), empty_label="Kérem válasszon", required=True, label="Raktár", initial=1)
     bevetel_mennyiseg = forms.DecimalField(label='Mennyiség: ', required=True)
     ar_bevetel_netto = forms.DecimalField(label='Nettó ár: ', required=False)
 

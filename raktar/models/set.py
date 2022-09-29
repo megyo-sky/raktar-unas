@@ -21,6 +21,10 @@ class Beallitas(models.Model):
     iweld_api_nev = models.CharField(max_length=255, blank=True, null=True)
     iweld_api_pass = models.CharField(max_length=255, blank=True, null=True)
     Mastroweld_szinkron = models.BooleanField(default=False)
+    keszlet_to_unas_alap_aruhaz = models.BooleanField(default=False)
+    keszlet_to_unas_masodik_aruhaz = models.BooleanField(default=False)
+    keszlet_to_unas_harmadik_aruhaz = models.BooleanField(default=False)
+    ertekesit_unas_to_raktar = models.BooleanField(default=False)
 
     class Meta:
         verbose_name_plural = "Beállítások"
