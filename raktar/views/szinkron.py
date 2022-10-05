@@ -1,12 +1,14 @@
 import datetime
 import os
-from raktar.models import Termek, Beallitas, Raktarkeszlet
+from raktar.models import Termek, Beallitas, Raktarkeszlet, Ertekesit, Raktar
 from django.conf import settings
 import xml.etree.ElementTree as et
 import requests, csv
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
+from django.contrib.auth.models import User
+from decimal import Decimal
 
 
 def adderrorlist(error):
@@ -148,37 +150,38 @@ def unas_betolto(aruhaz):
         print('Betöltés kész: ' + aruhaz)
     except:
         print('Betöltés hiba: ' + aruhaz)
+        adderrorlist('Unas termék betöltés hiba')
 
     if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'import/' + aruhaz + '_termek_import.xml')):
         os.remove(os.path.join(settings.MEDIA_ROOT, 'import/' + aruhaz + '_termek_import.xml'))
 
 
-def unas_price_update(aruhaz, token):
-    urlToken = 'https://api.unas.eu/shop/setProduct'
-    headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/xml'}
-    param = '<Products>'
-
-    if aruhaz == "alap_aruhaz":
-        termekek = Termek.objects.filter(alap_aruhaz=True).values_list('gyari_cikkszam', 'alap_bolt_ar_brutto')
-    elif aruhaz == "masodik_aruhaz":
-        termekek = Termek.objects.filter(masodik_aruhaz=True).values_list('gyari_cikkszam', 'masodik_bolt_ar_brutto')
-    elif aruhaz == "harmadik_aruhaz":
-        termekek = Termek.objects.filter(harmadik_aruhaz=True).values_list('gyari_cikkszam', 'harmadik_bolt_ar_brutto')
-    for row in termekek:
-        sku = row[0]
-        price = row[1]
-        if (price != 0) and (price is not None):
-            price = str(row[1])
-            param += '<Product><Action>modify</Action><Sku>'+sku+'</Sku><Prices><Price><Type>normal</Type><Net>'+price+'</Net><Gross>'+price+'</Gross></Price></Prices></Product>'
-    param += '</Products>'
-    print(param)
-    response = requests.get(urlToken, data=param, headers=headers)
-    if response.status_code == requests.codes.ok:
-         print(response.text)
-    else:
-        print(response.text)
-
-    print("Ár módosítás kész: " + aruhaz)
+# def unas_price_update(aruhaz, token):
+#     urlToken = 'https://api.unas.eu/shop/setProduct'
+#     headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/xml'}
+#     param = '<Products>'
+#
+#     if aruhaz == "alap_aruhaz":
+#         termekek = Termek.objects.filter(alap_aruhaz=True).values_list('gyari_cikkszam', 'alap_bolt_ar_brutto')
+#     elif aruhaz == "masodik_aruhaz":
+#         termekek = Termek.objects.filter(masodik_aruhaz=True).values_list('gyari_cikkszam', 'masodik_bolt_ar_brutto')
+#     elif aruhaz == "harmadik_aruhaz":
+#         termekek = Termek.objects.filter(harmadik_aruhaz=True).values_list('gyari_cikkszam', 'harmadik_bolt_ar_brutto')
+#     for row in termekek:
+#         sku = row[0]
+#         price = row[1]
+#         if (price != 0) and (price is not None):
+#             price = str(row[1])
+#             param += '<Product><Action>modify</Action><Sku>'+sku+'</Sku><Prices><Price><Type>normal</Type><Net>'+price+'</Net><Gross>'+price+'</Gross></Price></Prices></Product>'
+#     param += '</Products>'
+#     print(param)
+#     response = requests.get(urlToken, data=param, headers=headers)
+#     if response.status_code == requests.codes.ok:
+#          print(response.text)
+#     else:
+#         print(response.text)
+#
+#     print("Ár módosítás kész: " + aruhaz)
 
 
 def mas_nagyker_szinkron():
@@ -210,7 +213,6 @@ def mas_nagyker_szinkron():
                 termek.ar_nagyker_netto=nagyker_ar
                 termek.nagyker_keszlet=keszlet
                 termek.save()
-                print(sku + " - Sikeres Mas termék szinkron")
             except Exception as ex:
                 print(ex)
                 adderrorlist(str(sku) + ' - Mastroweld készlet szinkron hiba')
@@ -239,7 +241,6 @@ def iweld_stock_nagyker_szinkron(nev, pas):
                 try:
                     termek.nagyker_keszlet=keszlet
                     termek.save()
-                    print(sku+" - Sikeres Iweld termék szinkron")
                 except Exception as ex:
                     print(ex)
                     adderrorlist(str(sku)+' - Iweld készlet szinkron hiba')
@@ -273,78 +274,106 @@ def keszlet_to_unas(aruhaz):
     with open(os.path.join(settings.MEDIA_ROOT, 'import/'+aruhaz+'_keszlet_to_unas.csv'), 'w', encoding='utf-8') as f:
         for item in list:
             f.write("%s\n" % item)
+    print(aruhaz+ " Sikeres keszlet_to_unas")
 
 
 def unas_orders(aruhaz, token):
+    raktar = get_object_or_404(Raktar, id=1)
+    user = get_object_or_404(User, id=1)
+    stamp = datetime.datetime.now() - datetime.timedelta(days=2)
+    stamp = int(stamp.timestamp())
+    # print(stamp)
+
     urlToken = 'https://api.unas.eu/shop/getOrder'
     headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/xml'}
-    param = '''<Params>
-                    <Status>close_ok</Status>
-                    <LimitNum>2</LimitNum>
-                </Params>'''
+    param = '<Params><Status>close_ok</Status><TimeModStart>'+str(stamp)+'</TimeModStart></Params>'
     response = requests.get(urlToken, data=param, headers=headers)
     if response.status_code == requests.codes.ok:
-        orders = response.text
+        # orders = response.text
         xml_content = response.content
         root = et.fromstring(xml_content)
-        print(" Sikeres Unas Orders connect")
 
         for child in root:
-            # print(child.tag, child.attrib, child.attrib ,child.text)
-            # et.dump(child)
-            key = child.find('Key').text
-            datum = child.find('Date').text
-            print(key)
-            print(datum)
-            items = child.find('Items')
+            try:
+                key = child.find('Key').text
+                datum = child.find('Date').text[:10]
+                datum = datum.replace(".","-")
+                # print(key)
+                items = child.find('Items')
+                for item in items:
+                    sku = item.find('Sku').text
+                    mennyiseg = Decimal(item.find('Quantity').text)
+                    ar = int(float(item.find('PriceNet').text))
 
-            for item in items:
-                sku = item.find('Sku').text
-                mennyiseg = item.find('Quantity').text
-                print(sku)
-                print(mennyiseg)
-            print("\n")
+                    if sku !='shipping-cost':
+                        ertekesit = Ertekesit.objects.filter(unas_order_key=key)
+                        if not ertekesit.count():
+                            try:
+                                termek = Termek.objects.get(gyari_cikkszam=sku)
+                                ertekesit = Ertekesit(termek=termek, raktar=raktar, eladas_mennyiseg=mennyiseg, eladas_datum=datum,
+                                                      megjegyzes=key, ar_eladas_brutto=ar, user=user, unas_order_key=key)
+                                ertekesit.save()
+                            except:
+                                adderrorlist(str(sku) + ' - Unas eladás betöltés hiba')
+                            try:
+                                raktarkeszlet = Raktarkeszlet.objects.filter(termek=termek, raktar=raktar)
+                                if not raktarkeszlet.count():
+                                    mennyiseg = 0-mennyiseg
+                                    uj_raktarkeszlet = Raktarkeszlet(raktar=raktar, termek=termek, keszlet=mennyiseg)
+                                    uj_raktarkeszlet.save()
+                                else:
+                                    raktarkeszlet_id = Raktarkeszlet.objects.get(termek=termek, raktar=raktar)
+                                    keszlet = raktarkeszlet_id.keszlet
+                                    uj_keszlet = keszlet - mennyiseg
+
+                                    raktarkeszlet_id.keszlet = uj_keszlet
+                                    raktarkeszlet_id.save()
+                            except:
+                                adderrorlist(str(sku) + ' - Unas készlet frissítés hiba')
+            except:
+                adderrorlist(str(sku)+' - Unas eladás frissítés hiba')
     print("Orders kész: " + aruhaz)
 
 
 def szinkron(request):
     set = Beallitas.objects.get(id=1)
-    token = getUnasToken('alap_aruhaz')
-    # if set.alap_aruhaz_aktiv:
-    #     token = getUnasToken('alap_aruhaz')
-    #     unas_download('alap_aruhaz', token)
-    #     unas_betolto('alap_aruhaz')
-    #     # unas_price_update('alap_aruhaz', token)
-    #
-    # if set.masodik_aruhaz_aktiv:
-    #     token = getUnasToken('masodik_aruhaz')
-    #     unas_download('masodik_aruhaz', token)
-    #     unas_betolto('masodik_aruhaz')
-    #     # unas_price_update('masodik_aruhaz', token)
-    #
-    # if set.harmadik_aruhaz_aktiv:
-    #     token = getUnasToken('harmadik_aruhaz')
-    #     unas_download('harmadik_aruhaz', token)
-    #     unas_betolto('harmadik_aruhaz')
-    #     # unas_price_update('harmadik_aruhaz', token)
-    #
-    # if set.iweld_szinkron:
-    #     nev = set.iweld_api_nev
-    #     pas = set.iweld_api_pass
-    #     iweld_stock_nagyker_szinkron(nev, pas)
-    #
-    # if set.Mastroweld_szinkron:
-    #     mas_nagyker_szinkron()
 
-    # if set.keszlet_to_unas_alap_aruhaz:
-    #     keszlet_to_unas('alap_aruhaz')
-    #
-    # if set.keszlet_to_unas_masodik_aruhaz:
-    #     keszlet_to_unas('masodik_aruhaz')
-    #
-    # if set.keszlet_to_unas_harmadik_aruhaz:
-    #     keszlet_to_unas('harmadik_aruhaz')
+    if set.alap_aruhaz_aktiv:
+        token = getUnasToken('alap_aruhaz')
+        unas_download('alap_aruhaz', token)
+        unas_betolto('alap_aruhaz')
+        unas_orders('alap_aruhaz', token)
 
-    unas_orders('alap_aruhaz', token)
+    if set.masodik_aruhaz_aktiv:
+        token = getUnasToken('masodik_aruhaz')
+        unas_download('masodik_aruhaz', token)
+        unas_betolto('masodik_aruhaz')
+        unas_orders('masodik_aruhaz', token)
 
+    if set.harmadik_aruhaz_aktiv:
+        token = getUnasToken('harmadik_aruhaz')
+        unas_download('harmadik_aruhaz', token)
+        unas_betolto('harmadik_aruhaz')
+        unas_orders('harmadik_aruhaz', token)
+        # unas_price_update('harmadik_aruhaz', token)
+
+    if set.iweld_szinkron:
+        nev = set.iweld_api_nev
+        pas = set.iweld_api_pass
+        iweld_stock_nagyker_szinkron(nev, pas)
+
+    if set.Mastroweld_szinkron:
+        mas_nagyker_szinkron()
+
+    # Készlet beállítása
+    if set.keszlet_to_unas_alap_aruhaz:
+        keszlet_to_unas('alap_aruhaz')
+
+    if set.keszlet_to_unas_masodik_aruhaz:
+        keszlet_to_unas('masodik_aruhaz')
+
+    if set.keszlet_to_unas_harmadik_aruhaz:
+        keszlet_to_unas('harmadik_aruhaz')
+
+    # print(adderrorlist)
     return HttpResponse('Siker', content_type="text/plain")
