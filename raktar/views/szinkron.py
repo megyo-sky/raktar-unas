@@ -300,14 +300,15 @@ def unas_orders(aruhaz, token):
                 datum = datum.replace(".","-")
                 # print(key)
                 items = child.find('Items')
-                for item in items:
-                    sku = item.find('Sku').text
-                    mennyiseg = Decimal(item.find('Quantity').text)
-                    ar = int(float(item.find('PriceNet').text))
 
-                    if sku !='shipping-cost':
-                        ertekesit = Ertekesit.objects.filter(unas_order_key=key)
-                        if not ertekesit.count():
+                ertekesit = Ertekesit.objects.filter(unas_order_key=key)
+                if not ertekesit.count():
+                    for item in items:
+                        sku = item.find('Sku').text
+                        mennyiseg = Decimal(item.find('Quantity').text)
+                        ar = int(float(item.find('PriceNet').text))
+
+                        if sku !='shipping-cost':
                             try:
                                 termek = Termek.objects.get(gyari_cikkszam=sku)
                                 ertekesit = Ertekesit(termek=termek, raktar=raktar, eladas_mennyiseg=mennyiseg, eladas_datum=datum,
