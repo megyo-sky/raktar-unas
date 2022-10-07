@@ -58,5 +58,5 @@ class Termek(models.Model):
         unique_together = ('gyari_cikkszam', 'termek_nev')
 
     def __str__(self):
-        return str(self.termek_nev)
+        return str(self.termek_nev + ' - ' + self.gyari_cikkszam )
 

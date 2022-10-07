@@ -7,7 +7,7 @@ from raktar.models import Termek
 class Ertekesit(models.Model):
     termek = models.ForeignKey(Termek, blank=False, null=False, on_delete=models.RESTRICT)
     raktar = models.ForeignKey(Raktar, blank=False, null=False, on_delete=models.RESTRICT)
-    unas_order_key = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    unas_order_key = models.CharField(max_length=20, blank=True, null=True, db_index=True)
     eladas_mennyiseg = models.DecimalField(max_digits=9, decimal_places=2, blank=False, null=False)
     ar_eladas_brutto = models.IntegerField(validators=[MinValueValidator(0)], blank=False, null=False)
     eladas_datum = models.DateField(blank=False, null=False)

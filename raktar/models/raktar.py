@@ -26,7 +26,7 @@ class Raktarkeszlet(models.Model):
         unique_together = ('termek', 'raktar')
 
     def __str__(self):
-        return str(self.termek) + "   " + str(self.keszlet)
+        return str(self.termek) #+ "   " + str(self.keszlet)
 
 
 class Termek_Osszdb(models.Model):

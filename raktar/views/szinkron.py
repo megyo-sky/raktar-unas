@@ -280,7 +280,7 @@ def keszlet_to_unas(aruhaz):
 def unas_orders(aruhaz, token):
     raktar = get_object_or_404(Raktar, id=1)
     user = get_object_or_404(User, id=1)
-    stamp = datetime.datetime.now() - datetime.timedelta(days=2)
+    stamp = datetime.datetime.now() - datetime.timedelta(days=4)
     stamp = int(stamp.timestamp())
     # print(stamp)
 
