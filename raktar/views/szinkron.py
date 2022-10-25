@@ -9,6 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from decimal import Decimal
+from time import sleep, time
 
 
 def adderrorlist(error):
@@ -277,6 +278,37 @@ def keszlet_to_unas(aruhaz):
     print(aruhaz+ " Sikeres keszlet_to_unas")
 
 
+def unas_get_product(token, sku):
+    proba = 3
+    csomag_lista = {}
+    urlToken = 'https://api.unas.eu/shop/getProduct'
+    headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/xml'}
+    param = '<Params><Sku>'+sku+'</Sku><ContentType>full</ContentType><LimitNum>1</LimitNum></Params>'
+    response = requests.get(urlToken, data=param, headers=headers)
+    if response.status_code == requests.codes.ok:
+        products = response.content
+        root = et.fromstring(products)
+        for child in root:
+            csomag = child.find('PackageProduct').text
+            if csomag == 'yes':
+                package_components = child.find('PackageComponents')
+                for item in package_components:
+                    sku = item.find('Sku').text
+                    mennyiseg = Decimal(item.find('Qty').text)
+                    csomag_lista[sku] = mennyiseg
+            else:
+                csomag_lista[sku] = 55
+    elif proba > 0:
+        proba = proba-1
+        sleep(3)
+        unas_get_product(token, sku)
+    else:
+        adderrorlist(str(sku) + ' - Unas termék készlet letöltés hiba')
+        print("Unas termék készlet letöltés hiba")
+
+    return csomag_lista
+
+
 def unas_orders(aruhaz, token):
     raktar = get_object_or_404(Raktar, id=1)
     user = get_object_or_404(User, id=1)
@@ -304,35 +336,55 @@ def unas_orders(aruhaz, token):
                 ertekesit = Ertekesit.objects.filter(unas_order_key=key)
                 if not ertekesit.count():
                     for item in items:
-                        sku = item.find('Sku').text
+                        fo_sku = item.find('Sku').text
                         mennyiseg = Decimal(item.find('Quantity').text)
                         ar = int(float(item.find('PriceNet').text))
 
-                        if sku !='shipping-cost':
-                            try:
-                                termek = Termek.objects.get(gyari_cikkszam=sku)
-                                ertekesit = Ertekesit(termek=termek, raktar=raktar, eladas_mennyiseg=mennyiseg, eladas_datum=datum,
-                                                      megjegyzes=key, ar_eladas_brutto=ar, user=user, unas_order_key=key)
-                                ertekesit.save()
-                            except:
-                                adderrorlist(str(sku) + ' - Unas eladás betöltés hiba')
-                            try:
-                                raktarkeszlet = Raktarkeszlet.objects.filter(termek=termek, raktar=raktar)
-                                if not raktarkeszlet.count():
-                                    mennyiseg = 0-mennyiseg
-                                    uj_raktarkeszlet = Raktarkeszlet(raktar=raktar, termek=termek, keszlet=mennyiseg)
-                                    uj_raktarkeszlet.save()
-                                else:
-                                    raktarkeszlet_id = Raktarkeszlet.objects.get(termek=termek, raktar=raktar)
-                                    keszlet = raktarkeszlet_id.keszlet
-                                    uj_keszlet = keszlet - mennyiseg
+                        if fo_sku !='shipping-cost':
 
-                                    raktarkeszlet_id.keszlet = uj_keszlet
-                                    raktarkeszlet_id.save()
-                            except:
-                                adderrorlist(str(sku) + ' - Unas készlet frissítés hiba')
-            except:
-                adderrorlist(str(sku)+' - Unas eladás frissítés hiba')
+                            #Eladás felvitel
+                            try:
+                                fotermek = Termek.objects.get(gyari_cikkszam=fo_sku)
+                                # ertekesit = Ertekesit(termek=fotermek, raktar=raktar, eladas_mennyiseg=mennyiseg, eladas_datum=datum,
+                                #                       megjegyzes=key, ar_eladas_brutto=ar, user=user, unas_order_key=key)
+                                # ertekesit.save()
+                            except Exception as ex:
+                                adderrorlist(str(fo_sku) + ' - Unas eladás betöltés hiba')
+                                print(ex)
+
+                            #Készlet csökkentés
+                            csomag_termekek = {}
+                            if 2 > 1:
+                                csomag_termekek = unas_get_product(token, fo_sku)
+                            else:
+                                csomag_termekek[fo_sku] = mennyiseg
+
+                            print(csomag_termekek)
+                            for s, q in csomag_termekek.items():
+                                sku = s
+                                mennyiseg = q
+
+                                try:
+                                    termek = Termek.objects.get(gyari_cikkszam=sku)
+                                    raktarkeszlet = Raktarkeszlet.objects.filter(termek=termek, raktar=raktar)
+                                    if not raktarkeszlet.count():
+                                        mennyiseg = 0-mennyiseg
+                                        uj_raktarkeszlet = Raktarkeszlet(raktar=raktar, termek=termek, keszlet=mennyiseg)
+                                        uj_raktarkeszlet.save()
+                                    else:
+                                        raktarkeszlet_id = Raktarkeszlet.objects.get(termek=termek, raktar=raktar)
+                                        keszlet = raktarkeszlet_id.keszlet
+                                        uj_keszlet = keszlet - mennyiseg
+
+                                        raktarkeszlet_id.keszlet = uj_keszlet
+                                        raktarkeszlet_id.save()
+                                except Exception as ex:
+                                    adderrorlist(str(sku) + ' - Unas készlet frissítés hiba')
+                                    print(ex)
+            except Exception as ex:
+                adderrorlist(str(fo_sku)+' - Unas eladás frissítés hiba')
+                print(ex)
+
     print("Orders kész: " + aruhaz)
 
 
@@ -341,40 +393,40 @@ def szinkron(request):
 
     if set.alap_aruhaz_aktiv:
         token = getUnasToken('alap_aruhaz')
-        unas_download('alap_aruhaz', token)
-        unas_betolto('alap_aruhaz')
+        # unas_download('alap_aruhaz', token)
+        # unas_betolto('alap_aruhaz')
         unas_orders('alap_aruhaz', token)
-
-    if set.masodik_aruhaz_aktiv:
-        token = getUnasToken('masodik_aruhaz')
-        unas_download('masodik_aruhaz', token)
-        unas_betolto('masodik_aruhaz')
-        unas_orders('masodik_aruhaz', token)
-
-    if set.harmadik_aruhaz_aktiv:
-        token = getUnasToken('harmadik_aruhaz')
-        unas_download('harmadik_aruhaz', token)
-        unas_betolto('harmadik_aruhaz')
-        unas_orders('harmadik_aruhaz', token)
-        # unas_price_update('harmadik_aruhaz', token)
-
-    if set.iweld_szinkron:
-        nev = set.iweld_api_nev
-        pas = set.iweld_api_pass
-        iweld_stock_nagyker_szinkron(nev, pas)
-
-    if set.Mastroweld_szinkron:
-        mas_nagyker_szinkron()
+    #
+    # if set.masodik_aruhaz_aktiv:
+    #     token = getUnasToken('masodik_aruhaz')
+    #     unas_download('masodik_aruhaz', token)
+    #     unas_betolto('masodik_aruhaz')
+    #     unas_orders('masodik_aruhaz', token)
+    #
+    # if set.harmadik_aruhaz_aktiv:
+    #     token = getUnasToken('harmadik_aruhaz')
+    #     unas_download('harmadik_aruhaz', token)
+    #     unas_betolto('harmadik_aruhaz')
+    #     unas_orders('harmadik_aruhaz', token)
+    #     # unas_price_update('harmadik_aruhaz', token)
+    #
+    # if set.iweld_szinkron:
+    #     nev = set.iweld_api_nev
+    #     pas = set.iweld_api_pass
+    #     iweld_stock_nagyker_szinkron(nev, pas)
+    #
+    # if set.Mastroweld_szinkron:
+    #     mas_nagyker_szinkron()
 
     # Készlet beállítása
-    if set.keszlet_to_unas_alap_aruhaz:
-        keszlet_to_unas('alap_aruhaz')
-
-    if set.keszlet_to_unas_masodik_aruhaz:
-        keszlet_to_unas('masodik_aruhaz')
-
-    if set.keszlet_to_unas_harmadik_aruhaz:
-        keszlet_to_unas('harmadik_aruhaz')
+    # if set.keszlet_to_unas_alap_aruhaz:
+    #     keszlet_to_unas('alap_aruhaz')
+    #
+    # if set.keszlet_to_unas_masodik_aruhaz:
+    #     keszlet_to_unas('masodik_aruhaz')
+    #
+    # if set.keszlet_to_unas_harmadik_aruhaz:
+    #     keszlet_to_unas('harmadik_aruhaz')
 
     # print(adderrorlist)
     return HttpResponse('Siker', content_type="text/plain")
