@@ -54,7 +54,7 @@ def getUnasToken(aruhaz):
 def unas_download(aruhaz, token):
     urlToken = 'https://api.unas.eu/shop/getProduct'
     headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'text/xml'}
-    param = '''<Params><ContentType>short</ContentType></Params>'''
+    param = '''<Params><ContentType>full</ContentType></Params>'''
     response = requests.get(urlToken, data=param, headers=headers)
     if response.status_code == requests.codes.ok:
         products = response.text
@@ -102,38 +102,43 @@ def unas_betolto(aruhaz):
         for child in root:
             state = (child.find('State').text)
             if state != 'deleted':
-                cikkszam = (child.find('Sku').text)
+                cikkszam = (child.find('Sku').text).upper()
                 name = (child.find('Name').text)
                 egyseg = (child.find('Unit').text)
                 price = int(float(child.find('Prices')[1].find('Gross').text))
+                csom = child.find('PackageProduct').text
+                if csom == 'yes':
+                    csomag = True
+                else:
+                    csomag = False
 
                 if Termek.objects.filter(gyari_cikkszam=cikkszam).exists():
                     if aruhaz == "alap_aruhaz":
                         if set.alap_aruhaz_kezdeti_arszinkron:
-                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(alap_aruhaz=True, alap_bolt_ar_brutto=price)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(alap_aruhaz=True, alap_bolt_ar_brutto=price, csomag=csomag)
                         else:
                             Termek.objects.filter(gyari_cikkszam=cikkszam).update(alap_aruhaz=True)
 
                     elif aruhaz == "masodik_aruhaz":
                         if set.masodik_aruhaz_kezdeti_arszinkron:
-                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(masodik_aruhaz=True, masodik_bolt_ar_brutto=price)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(masodik_aruhaz=True, masodik_bolt_ar_brutto=price, csomag=csomag)
                         else:
                             Termek.objects.filter(gyari_cikkszam=cikkszam).update(masodik_aruhaz=True)
 
                     elif aruhaz == "harmadik_aruhaz":
                         if set.harmadik_aruhaz_kezdeti_arszinkron:
-                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(harmadik_aruhaz=True, harmadik_bolt_ar_brutto=price)
+                            Termek.objects.filter(gyari_cikkszam=cikkszam).update(harmadik_aruhaz=True, harmadik_bolt_ar_brutto=price, csomag=csomag)
                         else:
                             Termek.objects.filter(gyari_cikkszam=cikkszam).update(harmadik_aruhaz=True)
 
                 else:
                     if aruhaz == "alap_aruhaz":
-                        list.append(Termek(gyari_cikkszam=cikkszam, termek_nev=name, alap_bolt_ar_brutto=price,mennyisegi_egyseg=egyseg, alap_aruhaz=True),)
+                        list.append(Termek(gyari_cikkszam=cikkszam, termek_nev=name, alap_bolt_ar_brutto=price,mennyisegi_egyseg=egyseg, alap_aruhaz=True, csomag=csomag),)
                     elif aruhaz == "masodik_aruhaz":
-                        list.append(Termek(gyari_cikkszam=cikkszam, termek_nev=name, masodik_bolt_ar_brutto=price, mennyisegi_egyseg=egyseg, masodik_aruhaz=True),)
+                        list.append(Termek(gyari_cikkszam=cikkszam, termek_nev=name, masodik_bolt_ar_brutto=price, mennyisegi_egyseg=egyseg, masodik_aruhaz=True, csomag=csomag),)
                     elif aruhaz == "harmadik_aruhaz":
                         list.append(
-                            Termek(gyari_cikkszam=cikkszam, termek_nev=name, harmadik_bolt_ar_brutto=price, mennyisegi_egyseg=egyseg, harmadik_aruhaz=True),)
+                            Termek(gyari_cikkszam=cikkszam, termek_nev=name, harmadik_bolt_ar_brutto=price, mennyisegi_egyseg=egyseg, harmadik_aruhaz=True, csomag=csomag),)
 
         # try:
         Termek.objects.bulk_create(list)
@@ -197,7 +202,7 @@ def mas_nagyker_szinkron():
     #     next(reader)
 
     for index, row in enumerate(reader):
-        sku = row[0].strip()
+        sku = row[0].strip().upper()
         keszlet = row[5].strip()
         netto_ar = row[7].strip()
         akcios_ar = row[8].strip()
@@ -235,7 +240,7 @@ def iweld_stock_nagyker_szinkron(nev, pas):
         for child in root:
             # print(child.tag, child.attrib, child.attrib ,child.text)
             # et.dump(child)
-            sku = child.find('PRODUCT_ID').text
+            sku = (child.find('PRODUCT_ID').text).upper()
             keszlet = int(float(child.find('STOCK').text))
             try:
                 termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='iwe')
@@ -293,7 +298,7 @@ def unas_get_product(token, sku):
             if csomag == 'yes':
                 package_components = child.find('PackageComponents')
                 for item in package_components:
-                    sku = item.find('Sku').text
+                    sku = (item.find('Sku').text).upper()
                     mennyiseg = Decimal(item.find('Qty').text)
                     csomag_lista[sku] = mennyiseg
             else:
@@ -336,30 +341,28 @@ def unas_orders(aruhaz, token):
                 ertekesit = Ertekesit.objects.filter(unas_order_key=key)
                 if not ertekesit.count():
                     for item in items:
-                        fo_sku = item.find('Sku').text
+                        fo_sku = (item.find('Sku').text).upper()
                         mennyiseg = Decimal(item.find('Quantity').text)
                         ar = int(float(item.find('PriceNet').text))
 
-                        if fo_sku !='shipping-cost':
-
+                        if fo_sku !='SHIPPING-COST' or fo_sku !='HANDEL-COST':
                             #Eladás felvitel
                             try:
                                 fotermek = Termek.objects.get(gyari_cikkszam=fo_sku)
-                                # ertekesit = Ertekesit(termek=fotermek, raktar=raktar, eladas_mennyiseg=mennyiseg, eladas_datum=datum,
-                                #                       megjegyzes=key, ar_eladas_brutto=ar, user=user, unas_order_key=key)
-                                # ertekesit.save()
+                                ertekesit = Ertekesit(termek=fotermek, raktar=raktar, eladas_mennyiseg=mennyiseg, eladas_datum=datum, ar_eladas_brutto=ar, user=user, unas_order_key=key)
+                                ertekesit.save()
                             except Exception as ex:
-                                adderrorlist(str(fo_sku) + ' - Unas eladás betöltés hiba')
+                                adderrorlist(str(fo_sku) + ' - Unas eladás rögzítése hiba')
                                 print(ex)
 
                             #Készlet csökkentés
                             csomag_termekek = {}
-                            if 2 > 1:
+                            print(fotermek.csomag)
+                            if fotermek.csomag:
                                 csomag_termekek = unas_get_product(token, fo_sku)
                             else:
                                 csomag_termekek[fo_sku] = mennyiseg
 
-                            print(csomag_termekek)
                             for s, q in csomag_termekek.items():
                                 sku = s
                                 mennyiseg = q
@@ -382,7 +385,7 @@ def unas_orders(aruhaz, token):
                                     adderrorlist(str(sku) + ' - Unas készlet frissítés hiba')
                                     print(ex)
             except Exception as ex:
-                adderrorlist(str(fo_sku)+' - Unas eladás frissítés hiba')
+                adderrorlist(str(fo_sku)+' - Unas Order rögzítés hiba')
                 print(ex)
 
     print("Orders kész: " + aruhaz)
@@ -393,30 +396,30 @@ def szinkron(request):
 
     if set.alap_aruhaz_aktiv:
         token = getUnasToken('alap_aruhaz')
-        # unas_download('alap_aruhaz', token)
-        # unas_betolto('alap_aruhaz')
+        unas_download('alap_aruhaz', token)
+        unas_betolto('alap_aruhaz')
         unas_orders('alap_aruhaz', token)
-    #
-    # if set.masodik_aruhaz_aktiv:
-    #     token = getUnasToken('masodik_aruhaz')
-    #     unas_download('masodik_aruhaz', token)
-    #     unas_betolto('masodik_aruhaz')
-    #     unas_orders('masodik_aruhaz', token)
-    #
-    # if set.harmadik_aruhaz_aktiv:
-    #     token = getUnasToken('harmadik_aruhaz')
-    #     unas_download('harmadik_aruhaz', token)
-    #     unas_betolto('harmadik_aruhaz')
-    #     unas_orders('harmadik_aruhaz', token)
-    #     # unas_price_update('harmadik_aruhaz', token)
-    #
-    # if set.iweld_szinkron:
-    #     nev = set.iweld_api_nev
-    #     pas = set.iweld_api_pass
-    #     iweld_stock_nagyker_szinkron(nev, pas)
-    #
-    # if set.Mastroweld_szinkron:
-    #     mas_nagyker_szinkron()
+
+    if set.masodik_aruhaz_aktiv:
+        token = getUnasToken('masodik_aruhaz')
+        unas_download('masodik_aruhaz', token)
+        unas_betolto('masodik_aruhaz')
+        unas_orders('masodik_aruhaz', token)
+
+    if set.harmadik_aruhaz_aktiv:
+        token = getUnasToken('harmadik_aruhaz')
+        unas_download('harmadik_aruhaz', token)
+        unas_betolto('harmadik_aruhaz')
+        unas_orders('harmadik_aruhaz', token)
+        # unas_price_update('harmadik_aruhaz', token)
+
+    if set.iweld_szinkron:
+        nev = set.iweld_api_nev
+        pas = set.iweld_api_pass
+        iweld_stock_nagyker_szinkron(nev, pas)
+
+    if set.Mastroweld_szinkron:
+        mas_nagyker_szinkron()
 
     # Készlet beállítása
     # if set.keszlet_to_unas_alap_aruhaz:
@@ -428,5 +431,5 @@ def szinkron(request):
     # if set.keszlet_to_unas_harmadik_aruhaz:
     #     keszlet_to_unas('harmadik_aruhaz')
 
-    # print(adderrorlist)
+    print(adderrorlist)
     return HttpResponse('Siker', content_type="text/plain")

@@ -50,6 +50,7 @@ class Termek(models.Model):
     alap_aruhaz = models.BooleanField(default=False)
     masodik_aruhaz = models.BooleanField(default=False)
     harmadik_aruhaz = models.BooleanField(default=False)
+    csomag = models.BooleanField(default=False)
 
     aktiv = models.BooleanField(default=True)
 
