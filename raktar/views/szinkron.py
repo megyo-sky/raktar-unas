@@ -24,11 +24,11 @@ def adderrorlist(error):
 def getUnasToken(aruhaz):
     set = Beallitas.objects.get(id=1)
     if aruhaz == 'alap_aruhaz':
-        key= set.alap_aruhaz_KEY
+        key = set.alap_aruhaz_KEY
     elif aruhaz == 'masodik_aruhaz':
-        key= set.masodik_aruhaz_KEY
+        key = set.masodik_aruhaz_KEY
     elif aruhaz == 'harmadik_aruhaz':
-        key= set.harmadik_aruhaz_KEY
+        key = set.harmadik_aruhaz_KEY
     else:
         key= "0"
         adderrorlist('Nincs áruház azonosító')
@@ -191,11 +191,13 @@ def unas_betolto(aruhaz):
 
 
 def mas_nagyker_szinkron():
+    global uj_ar
     url = 'https://www.mastroweld.hu/files/csv_export/sajat.csv'
     data = requests.get(url)
     data.encoding = 'utf-8'
     lines = data.text.splitlines()
     reader = csv.reader(lines, delimiter=';')
+    next(reader)
     print(" Sikeres Mas készlet letöltés")
     # with open(os.path.join(settings.MEDIA_ROOT, 'export/sajat.csv'), 'r', encoding='utf-8') as termek_import:
     #     reader = csv.reader(termek_import, delimiter=';')
@@ -216,15 +218,19 @@ def mas_nagyker_szinkron():
         try:
             termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='mas')
             try:
-                termek.ar_nagyker_netto=nagyker_ar
-                termek.nagyker_keszlet=keszlet
-                termek.save()
+                nagyker_ar = Decimal(nagyker_ar)
+                if termek.ar_nagyker_netto < nagyker_ar or termek.ar_nagyker_netto > nagyker_ar:
+                    uj_ar += termek.gyari_cikkszam + '; ' + termek.termek_nev + '; ' + str(termek.ar_nagyker_netto) + '; ' + str(nagyker_ar)+"\n"
+                    termek.ar_nagyker_netto=nagyker_ar
+                    termek.nagyker_keszlet=keszlet
+                    termek.save()
             except Exception as ex:
                 print(ex)
                 adderrorlist(str(sku) + ' - Mastroweld készlet szinkron hiba')
         except:
             pass
         # print(" sku: " + sku + " --- keszlet: " + keszlet + " ---ar: " + netto_ar)
+    print("Mastroweld nagyker szinkron kész")
 
 
 def iweld_stock_nagyker_szinkron(nev, pas):
@@ -394,32 +400,35 @@ def unas_orders(aruhaz, token):
 def szinkron(request):
     set = Beallitas.objects.get(id=1)
 
-    if set.alap_aruhaz_aktiv:
-        token = getUnasToken('alap_aruhaz')
-        unas_download('alap_aruhaz', token)
-        unas_betolto('alap_aruhaz')
-        unas_orders('alap_aruhaz', token)
+    # if set.alap_aruhaz_aktiv:
+    #     token = getUnasToken('alap_aruhaz')
+    #     unas_download('alap_aruhaz', token)
+    #     unas_betolto('alap_aruhaz')
+    #     unas_orders('alap_aruhaz', token)
+    #
+    # if set.masodik_aruhaz_aktiv:
+    #     token = getUnasToken('masodik_aruhaz')
+    #     unas_download('masodik_aruhaz', token)
+    #     unas_betolto('masodik_aruhaz')
+    #     unas_orders('masodik_aruhaz', token)
+    #
+    # if set.harmadik_aruhaz_aktiv:
+    #     token = getUnasToken('harmadik_aruhaz')
+    #     unas_download('harmadik_aruhaz', token)
+    #     unas_betolto('harmadik_aruhaz')
+    #     unas_orders('harmadik_aruhaz', token)
+    #     # unas_price_update('harmadik_aruhaz', token)
 
-    if set.masodik_aruhaz_aktiv:
-        token = getUnasToken('masodik_aruhaz')
-        unas_download('masodik_aruhaz', token)
-        unas_betolto('masodik_aruhaz')
-        unas_orders('masodik_aruhaz', token)
+    global uj_ar
+    uj_ar = "Gyári cikkszám; Név; Régi nagyker ár; Új nagyker ár\n"
 
-    if set.harmadik_aruhaz_aktiv:
-        token = getUnasToken('harmadik_aruhaz')
-        unas_download('harmadik_aruhaz', token)
-        unas_betolto('harmadik_aruhaz')
-        unas_orders('harmadik_aruhaz', token)
-        # unas_price_update('harmadik_aruhaz', token)
+    # if set.iweld_szinkron:
+    #     nev = set.iweld_api_nev
+    #     pas = set.iweld_api_pass
+    #     iweld_stock_nagyker_szinkron(nev, pas)
 
-    if set.iweld_szinkron:
-        nev = set.iweld_api_nev
-        pas = set.iweld_api_pass
-        iweld_stock_nagyker_szinkron(nev, pas)
-
-    if set.Mastroweld_szinkron:
-        mas_nagyker_szinkron()
+    # if set.Mastroweld_szinkron:
+    #     mas_nagyker_szinkron()
 
     # Készlet beállítása
     # if set.keszlet_to_unas_alap_aruhaz:
@@ -431,5 +440,10 @@ def szinkron(request):
     # if set.keszlet_to_unas_harmadik_aruhaz:
     #     keszlet_to_unas('harmadik_aruhaz')
 
+
     print(adderrorlist)
+    print(uj_ar)
+    with open(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'), 'w', encoding='utf-8') as f:
+        f.write(uj_ar)
+
     return HttpResponse('Siker', content_type="text/plain")
