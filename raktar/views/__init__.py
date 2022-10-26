@@ -10,3 +10,4 @@ from .bevetelView import *
 from .termekView import *
 from .szinkron import *
 from .cron import *
+from .level import *

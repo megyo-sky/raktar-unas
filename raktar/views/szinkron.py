@@ -192,6 +192,7 @@ def unas_betolto(aruhaz):
 
 def mas_nagyker_szinkron():
     global uj_ar
+    global arszinkron
     url = 'https://www.mastroweld.hu/files/csv_export/sajat.csv'
     data = requests.get(url)
     data.encoding = 'utf-8'
@@ -224,6 +225,7 @@ def mas_nagyker_szinkron():
                     termek.ar_nagyker_netto=nagyker_ar
                     termek.nagyker_keszlet=keszlet
                     termek.save()
+                    arszinkron = True
             except Exception as ex:
                 print(ex)
                 adderrorlist(str(sku) + ' - Mastroweld készlet szinkron hiba')
@@ -400,35 +402,37 @@ def unas_orders(aruhaz, token):
 def szinkron(request):
     set = Beallitas.objects.get(id=1)
 
-    # if set.alap_aruhaz_aktiv:
-    #     token = getUnasToken('alap_aruhaz')
-    #     unas_download('alap_aruhaz', token)
-    #     unas_betolto('alap_aruhaz')
-    #     unas_orders('alap_aruhaz', token)
-    #
-    # if set.masodik_aruhaz_aktiv:
-    #     token = getUnasToken('masodik_aruhaz')
-    #     unas_download('masodik_aruhaz', token)
-    #     unas_betolto('masodik_aruhaz')
-    #     unas_orders('masodik_aruhaz', token)
-    #
-    # if set.harmadik_aruhaz_aktiv:
-    #     token = getUnasToken('harmadik_aruhaz')
-    #     unas_download('harmadik_aruhaz', token)
-    #     unas_betolto('harmadik_aruhaz')
-    #     unas_orders('harmadik_aruhaz', token)
-    #     # unas_price_update('harmadik_aruhaz', token)
+    if set.alap_aruhaz_aktiv:
+        token = getUnasToken('alap_aruhaz')
+        unas_download('alap_aruhaz', token)
+        unas_betolto('alap_aruhaz')
+        unas_orders('alap_aruhaz', token)
+
+    if set.masodik_aruhaz_aktiv:
+        token = getUnasToken('masodik_aruhaz')
+        unas_download('masodik_aruhaz', token)
+        unas_betolto('masodik_aruhaz')
+        unas_orders('masodik_aruhaz', token)
+
+    if set.harmadik_aruhaz_aktiv:
+        token = getUnasToken('harmadik_aruhaz')
+        unas_download('harmadik_aruhaz', token)
+        unas_betolto('harmadik_aruhaz')
+        unas_orders('harmadik_aruhaz', token)
+        # unas_price_update('harmadik_aruhaz', token)
 
     global uj_ar
+    global arszinkron
     uj_ar = "Gyári cikkszám; Név; Régi nagyker ár; Új nagyker ár\n"
+    arszinkron = False
 
-    # if set.iweld_szinkron:
-    #     nev = set.iweld_api_nev
-    #     pas = set.iweld_api_pass
-    #     iweld_stock_nagyker_szinkron(nev, pas)
+    if set.iweld_szinkron:
+        nev = set.iweld_api_nev
+        pas = set.iweld_api_pass
+        iweld_stock_nagyker_szinkron(nev, pas)
 
-    # if set.Mastroweld_szinkron:
-    #     mas_nagyker_szinkron()
+    if set.Mastroweld_szinkron:
+        mas_nagyker_szinkron()
 
     # Készlet beállítása
     # if set.keszlet_to_unas_alap_aruhaz:
@@ -441,9 +445,11 @@ def szinkron(request):
     #     keszlet_to_unas('harmadik_aruhaz')
 
 
-    print(adderrorlist)
-    print(uj_ar)
-    with open(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'), 'w', encoding='utf-8') as f:
-        f.write(uj_ar)
+    if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv')):
+        os.remove(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'))
+
+    if arszinkron:
+        with open(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'), 'w', encoding='utf-8') as f:
+            f.write(uj_ar)
 
     return HttpResponse('Siker', content_type="text/plain")
