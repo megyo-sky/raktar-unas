@@ -29,6 +29,8 @@ def getUnasToken(aruhaz):
         key = set.masodik_aruhaz_KEY
     elif aruhaz == 'harmadik_aruhaz':
         key = set.harmadik_aruhaz_KEY
+    elif aruhaz == 'kerl_szinkron':
+        key = set.kerl_szinkron_KEY
     else:
         key= "0"
         adderrorlist('Nincs áruház azonosító')
@@ -47,7 +49,7 @@ def getUnasToken(aruhaz):
     else:
         for child in root.findall('Token'):
             token = child.text
-            print("Login token: " + token)
+            print("Login token: " + aruhaz, token)
             return token
 
 
@@ -193,6 +195,13 @@ def unas_betolto(aruhaz):
 def mas_nagyker_szinkron():
     global uj_ar
     global arszinkron
+
+    sajat_mast_lista = set()
+    t = Termek.objects.filter(sajat_cikkszam='mas').values_list('gyari_cikkszam', flat=True)
+    for termek in t:
+        termek.upper()
+        sajat_mast_lista.add(termek)
+
     url = 'https://www.mastroweld.hu/files/csv_export/sajat.csv'
     data = requests.get(url)
     data.encoding = 'utf-8'
@@ -216,26 +225,34 @@ def mas_nagyker_szinkron():
         elif netto_ar != '' and netto_ar != 0:
             nagyker_ar = netto_ar
 
-        try:
-            termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='mas')
+        if sku in sajat_mast_lista:
             try:
-                nagyker_ar = Decimal(nagyker_ar)
-                if termek.ar_nagyker_netto < nagyker_ar or termek.ar_nagyker_netto > nagyker_ar:
-                    uj_ar += termek.gyari_cikkszam + '; ' + termek.termek_nev + '; ' + str(termek.ar_nagyker_netto) + '; ' + str(nagyker_ar)+"\n"
-                    termek.ar_nagyker_netto=nagyker_ar
-                    termek.nagyker_keszlet=keszlet
-                    termek.save()
-                    arszinkron = True
-            except Exception as ex:
-                print(ex)
-                adderrorlist(str(sku) + ' - Mastroweld készlet szinkron hiba')
-        except:
-            pass
+                termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='mas')
+                try:
+                    nagyker_ar = Decimal(nagyker_ar)
+                    print(int(nagyker_ar), int(termek.ar_nagyker_netto))
+                    if int(termek.ar_nagyker_netto) < int(nagyker_ar) or int(termek.ar_nagyker_netto) > int(nagyker_ar):
+                        uj_ar += termek.gyari_cikkszam + '; ' + termek.termek_nev + '; ' + str(termek.ar_nagyker_netto) + '; ' + str(nagyker_ar)+"\n"
+                        termek.ar_nagyker_netto=nagyker_ar
+                        termek.nagyker_keszlet=keszlet
+                        termek.save()
+                        arszinkron = True
+                except Exception as ex:
+                    print(ex)
+                    adderrorlist(str(sku) + ' - Mastroweld készlet szinkron hiba')
+            except:
+                pass
         # print(" sku: " + sku + " --- keszlet: " + keszlet + " ---ar: " + netto_ar)
     print("Mastroweld nagyker szinkron kész")
 
 
 def iweld_stock_nagyker_szinkron(nev, pas):
+    sajat_iweld_lista = set()
+    t = Termek.objects.filter(sajat_cikkszam='iwe').values_list('gyari_cikkszam', flat=True)
+    for termek in t:
+        termek.upper()
+        sajat_iweld_lista.add(termek)
+
     url = 'https://sync.vectorcloud.hu:5432/szinkron/getdata?resourceName=VA_stock&full=1'
     response = requests.get(url, auth=(nev, pas))
 
@@ -246,20 +263,72 @@ def iweld_stock_nagyker_szinkron(nev, pas):
         print(" Sikeres Iweld készlet letöltés")
 
         for child in root:
-            # print(child.tag, child.attrib, child.attrib ,child.text)
-            # et.dump(child)
             sku = (child.find('PRODUCT_ID').text).upper()
             keszlet = int(float(child.find('STOCK').text))
-            try:
-                termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='iwe')
+
+            if sku in sajat_iweld_lista:
                 try:
-                    termek.nagyker_keszlet=keszlet
-                    termek.save()
-                except Exception as ex:
-                    print(ex)
-                    adderrorlist(str(sku)+' - Iweld készlet szinkron hiba')
-            except:
-                pass
+                    termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='iwe')
+                    try:
+                        termek.nagyker_keszlet=keszlet
+                        termek.save()
+                    except Exception as ex:
+                        print(ex)
+                        adderrorlist(str(sku)+' - Iweld készlet szinkron hiba')
+                except:
+                    pass
+        print(" Sikeres Iweld készlet szinkron")
+
+def kerl_nagyker_szinkron():
+    global uj_ar
+    global arszinkron
+    try:
+        sajat_kerl_lista =set()
+        t = Termek.objects.filter(sajat_cikkszam='ker').values_list('gyari_cikkszam', flat=True)
+        for termek in t:
+            termek.upper()
+            sajat_kerl_lista.add(termek)
+
+        xml = str(os.path.join(settings.MEDIA_ROOT) + '/import/kerl_szinkron_termek_import.xml')
+        tree = et.parse(xml)
+        root = tree.getroot()
+        for child in root:
+            state = (child.find('State').text)
+            if state != 'deleted':
+                cikkszam = (child.find('Sku').text).upper()
+                price = float(child.find('Prices')[1].find('Net').text)
+                stock_aktiv = int(child.find('Stocks').find('Status').find('Active').text)
+                if stock_aktiv == 1:
+                    mennyiseg = int(child.find('Stocks').find('Stock').find('Qty').text)
+                else:
+                    mennyiseg = 0
+
+                if cikkszam in sajat_kerl_lista:
+                    # termek = Termek.objects.filter(gyari_cikkszam=cikkszam).update(ar_nagyker_netto=price, nagyker_keszlet=mennyiseg)
+                    try:
+                        termek = Termek.objects.get(gyari_cikkszam=cikkszam)
+                        try:
+                            nagyker_ar = Decimal(price)
+                            print(int(nagyker_ar), int(termek.ar_nagyker_netto))
+                            if int(termek.ar_nagyker_netto) < int(nagyker_ar) or int(termek.ar_nagyker_netto) > int(nagyker_ar):
+                                uj_ar += termek.gyari_cikkszam + '; ' + termek.termek_nev + '; ' + str(termek.ar_nagyker_netto) + '; ' + str(nagyker_ar)+"\n"
+                                termek.ar_nagyker_netto=nagyker_ar
+                                termek.nagyker_keszlet=mennyiseg
+                                termek.save()
+                                arszinkron = True
+                        except Exception as ex:
+                            print(ex)
+                            adderrorlist(str(cikkszam) + ' - Kerl készlet szinkron hiba')
+                    except:
+                        pass
+
+        print('Betöltés kész: Kerl nagyker szinkron')
+    except:
+        print('Global hiba: Kerl nagyker szinkron')
+        adderrorlist('Kerl nagyker global hiba')
+
+    if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'import/kerl_szinkron_termek_import.xml')):
+        os.remove(os.path.join(settings.MEDIA_ROOT, 'import/kerl_szinkron_termek_import.xml'))
 
 
 def keszlet_to_unas(aruhaz):
@@ -353,7 +422,7 @@ def unas_orders(aruhaz, token):
                         mennyiseg = Decimal(item.find('Quantity').text)
                         ar = int(float(item.find('PriceNet').text))
 
-                        if fo_sku !='SHIPPING-COST' or fo_sku !='HANDEL-COST':
+                        if (fo_sku != "SHIPPING-COST") or (fo_sku != "HANDEL-COST") or (fo_sku != "shipping-cost"):
                             #Eladás felvitel
                             try:
                                 fotermek = Termek.objects.get(gyari_cikkszam=fo_sku)
@@ -431,8 +500,13 @@ def szinkron(request):
         pas = set.iweld_api_pass
         iweld_stock_nagyker_szinkron(nev, pas)
 
-    if set.Mastroweld_szinkron:
+    if set.mastroweld_szinkron:
         mas_nagyker_szinkron()
+
+    if set.kerl_szinkron:
+        token = getUnasToken('kerl_szinkron')
+        unas_download('kerl_szinkron', token)
+        kerl_nagyker_szinkron()
 
     # Készlet beállítása
     # if set.keszlet_to_unas_alap_aruhaz:
