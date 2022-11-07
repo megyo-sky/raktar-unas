@@ -230,9 +230,10 @@ def mas_nagyker_szinkron():
                 termek = Termek.objects.get(gyari_cikkszam=sku, sajat_cikkszam='mas')
                 try:
                     nagyker_ar = Decimal(nagyker_ar)
+                    nagyker_ar = round(nagyker_ar, 2)
                     print(int(nagyker_ar), int(termek.ar_nagyker_netto))
                     if int(termek.ar_nagyker_netto) < int(nagyker_ar) or int(termek.ar_nagyker_netto) > int(nagyker_ar):
-                        uj_ar += termek.gyari_cikkszam + '; ' + termek.termek_nev + '; ' + str(termek.ar_nagyker_netto) + '; ' + str(nagyker_ar)+"\n"
+                        uj_ar += '"'+termek.gyari_cikkszam + '", "' + termek.termek_nev + '",' + str(termek.ar_nagyker_netto) + ', ' + str(nagyker_ar)+"\n"
                         termek.ar_nagyker_netto=nagyker_ar
                         termek.nagyker_keszlet=keszlet
                         termek.save()
@@ -309,9 +310,11 @@ def kerl_nagyker_szinkron():
                         termek = Termek.objects.get(gyari_cikkszam=cikkszam)
                         try:
                             nagyker_ar = Decimal(price)
+                            nagyker_ar = round(nagyker_ar, 2)
                             print(int(nagyker_ar), int(termek.ar_nagyker_netto))
                             if int(termek.ar_nagyker_netto) < int(nagyker_ar) or int(termek.ar_nagyker_netto) > int(nagyker_ar):
-                                uj_ar += termek.gyari_cikkszam + '; ' + termek.termek_nev + '; ' + str(termek.ar_nagyker_netto) + '; ' + str(nagyker_ar)+"\n"
+                                uj_ar += '"' + termek.gyari_cikkszam + '", "' + termek.termek_nev + '",' + str(
+                                    termek.ar_nagyker_netto) + ', ' + str(nagyker_ar) + "\n"
                                 termek.ar_nagyker_netto=nagyker_ar
                                 termek.nagyker_keszlet=mennyiseg
                                 termek.save()
@@ -422,7 +425,7 @@ def unas_orders(aruhaz, token):
                         mennyiseg = Decimal(item.find('Quantity').text)
                         ar = int(float(item.find('PriceNet').text))
 
-                        if (fo_sku != "SHIPPING-COST") or (fo_sku != "HANDEL-COST") or (fo_sku != "shipping-cost"):
+                        if (fo_sku != ("shipping-cost".upper())) or (fo_sku != "HANDEL-COST"):
                             #Eladás felvitel
                             try:
                                 fotermek = Termek.objects.get(gyari_cikkszam=fo_sku)
@@ -492,7 +495,7 @@ def szinkron(request):
 
     global uj_ar
     global arszinkron
-    uj_ar = "Gyári cikkszám; Név; Régi nagyker ár; Új nagyker ár\n"
+    uj_ar = "Gyári cikkszám, Név, Régi nagyker ár, Új nagyker ár\n"
     arszinkron = False
 
     if set.iweld_szinkron:
@@ -521,6 +524,71 @@ def szinkron(request):
 
     if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv')):
         os.remove(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'))
+
+    if arszinkron:
+        with open(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'), 'w', encoding='utf-8') as f:
+            f.write(uj_ar)
+
+    return HttpResponse('Siker', content_type="text/plain")
+
+
+
+def cron_szinkron():
+    set = Beallitas.objects.get(id=1)
+
+    if set.alap_aruhaz_aktiv:
+        token = getUnasToken('alap_aruhaz')
+        unas_download('alap_aruhaz', token)
+        unas_betolto('alap_aruhaz')
+        unas_orders('alap_aruhaz', token)
+
+    if set.masodik_aruhaz_aktiv:
+        token = getUnasToken('masodik_aruhaz')
+        unas_download('masodik_aruhaz', token)
+        unas_betolto('masodik_aruhaz')
+        unas_orders('masodik_aruhaz', token)
+
+    if set.harmadik_aruhaz_aktiv:
+        token = getUnasToken('harmadik_aruhaz')
+        unas_download('harmadik_aruhaz', token)
+        unas_betolto('harmadik_aruhaz')
+        unas_orders('harmadik_aruhaz', token)
+        # unas_price_update('harmadik_aruhaz', token)
+
+    global uj_ar
+    global arszinkron
+    uj_ar = "Gyári cikkszám, Név, Régi nagyker ár, Új nagyker ár\n"
+    arszinkron = False
+
+    if set.iweld_szinkron:
+        nev = set.iweld_api_nev
+        pas = set.iweld_api_pass
+        iweld_stock_nagyker_szinkron(nev, pas)
+
+    if set.mastroweld_szinkron:
+        mas_nagyker_szinkron()
+
+    if set.kerl_szinkron:
+        token = getUnasToken('kerl_szinkron')
+        unas_download('kerl_szinkron', token)
+        kerl_nagyker_szinkron()
+
+    # Készlet beállítása
+    # if set.keszlet_to_unas_alap_aruhaz:
+    #     keszlet_to_unas('alap_aruhaz')
+    #
+    # if set.keszlet_to_unas_masodik_aruhaz:
+    #     keszlet_to_unas('masodik_aruhaz')
+    #
+    # if set.keszlet_to_unas_harmadik_aruhaz:
+    #     keszlet_to_unas('harmadik_aruhaz')
+
+
+    if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv')):
+        os.remove(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'))
+
+    if os.path.isfile(os.path.join(settings.MEDIA_ROOT, 'uj_arak.xlsx')):
+        os.remove(os.path.join(settings.MEDIA_ROOT, 'uj_arak.xlsx'))
 
     if arszinkron:
         with open(os.path.join(settings.MEDIA_ROOT, 'uj_arak.csv'), 'w', encoding='utf-8') as f:
